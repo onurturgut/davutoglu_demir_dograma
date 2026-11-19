@@ -1,0 +1,12 @@
+# Frontend roadmap
+- [x] Public frontend pages and shared shell
+- [x] Resolve remaining public type errors
+- [x] Admin shell and all management routes
+- [x] Shared local draft/published store and public integration
+- [x] Homepage sections, selection, ordering and preview
+- [x] Service/project/blog CRUD, rich text, galleries and publication
+- [x] FAQ, contact/social, SEO/GEO, media and site settings
+- [x] Validated backup import/export and storage error handling
+- [x] Rule tests and desktop/mobile end-to-end verification
+- [x] Homepage GSAP scroll and ScrollTrigger animations with reduced-motion support
+- [x] Frontend-only admin email/password entry screen and demo exit; verify desktop/mobile preview
