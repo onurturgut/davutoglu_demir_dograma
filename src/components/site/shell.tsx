@@ -1,14 +1,252 @@
-import { Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ArrowUpRight, Menu, X, Phone, Instagram, MessageCircle, MapPin } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useBusiness, usePublishedSettings } from '@/lib/cms/store';
-import { MediaImage } from '@/components/admin/media-image';
-import { safeUrl } from '@/lib/cms/model';
-import { useEffect } from 'react';
-const navigation = [{ to: '/', label: 'Ana Sayfa' }, { to: '/hizmetler', label: 'Hizmetler' }, { to: '/projeler', label: 'Projeler' }, { to: '/hakkimizda', label: 'Hakkımızda' }, { to: '/blog', label: 'Blog' }, { to: '/iletisim', label: 'İletişim' }] as const;
-export function Brand() { const settings=usePublishedSettings(); return <Link to="/" className="brand" aria-label="Davutoğlu Demir Doğrama ana sayfa">{settings.site.logo ? <MediaImage className="brand-logo" src={settings.site.logo} alt={settings.site.name}/> : <span className="brand-mark" aria-hidden="true">D<span /></span>}<span><strong>{settings.site.name==='Davutoğlu Demir Doğrama'?'DAVUTOĞLU':settings.site.name}</strong><small>{settings.site.slogan}</small></span></Link>; }
-export function ContactButtons({ service, light = false }: { service?: string | undefined; light?: boolean }) { const businessConfig=useBusiness(); const whatsappUrl=businessConfig.whatsappUrl; return <div className="button-row"><Button asChild size="lg" variant={light ? 'secondary' : 'default'}><a href={whatsappUrl(service)} target="_blank" rel="noopener noreferrer"><MessageCircle />WhatsApp'tan Teklif Al<ArrowUpRight /></a></Button><Button asChild size="lg" variant="outline"><a href={businessConfig.phoneHref}><Phone />Hemen Ara</a></Button></div>; }
-export function SiteHeader() { const businessConfig=useBusiness();const whatsappUrl=businessConfig.whatsappUrl;const settings=usePublishedSettings(); const [open, setOpen] = useState(false); return <header className="site-header"><div className="container nav-inner"><Brand /><nav className="desktop-nav" aria-label="Ana menü">{navigation.filter(n=>settings.site.navbar.includes(n.to)).map(n => <Link key={n.to} to={n.to} activeProps={{ className: 'active' }} activeOptions={{ exact: n.to === '/' }}>{n.label}</Link>)}</nav><Button asChild className="nav-quote"><a href={whatsappUrl()} target="_blank" rel="noopener noreferrer">Teklif Al<ArrowUpRight /></a></Button><Button variant="ghost" size="icon" className="menu-toggle" aria-label={open ? 'Menüyü kapat' : 'Menüyü aç'} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</Button></div>{open && <nav className="mobile-menu" aria-label="Mobil menü">{navigation.filter(n=>settings.site.navbar.includes(n.to)).map(n => <Link key={n.to} to={n.to} onClick={() => setOpen(false)}>{n.label}<ArrowUpRight size={16} /></Link>)}</nav>}</header>; }
-export function ContactBand() { const businessConfig=useBusiness();const settings=usePublishedSettings();const section=settings.sections.find(s=>s.id==='contact'); return <section className="contact-band"><div className="container contact-band-inner"><div><span className="eyebrow">BİRLİKTE ÜRETELİM</span><h2>{section?.title}</h2><p>{section?.description}</p></div><div><ContactButtons light /><a className="instagram-link" href={businessConfig.instagram} target="_blank" rel="noopener noreferrer"><Instagram size={17} />Instagram'da çalışmalarımız<ArrowUpRight size={16} /></a></div></div></section>; }
-export function SiteFooter() { const businessConfig=useBusiness();const whatsappUrl=businessConfig.whatsappUrl;const settings=usePublishedSettings(); useEffect(()=>{document.documentElement.dataset['palette']=settings.site.palette;},[settings.site.palette]); return <><footer className="site-footer"><div className="container footer-top"><div><Brand /><p>{settings.site.footerDescription}</p></div><div><span className="footer-label">KEŞFEDİN</span>{navigation.filter(n=>settings.site.footer.includes(n.to)).map(n => <Link key={n.to} to={n.to}>{n.label}</Link>)}</div><div><span className="footer-label">İLETİŞİM</span><a href={businessConfig.phoneHref}>{businessConfig.phone}</a>{settings.socials.filter(l=>l.active&&l.footer&&safeUrl(l.url)).map(l=><a key={l.id} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer">{l.name}<ArrowUpRight size={14}/></a>)}<span className="location"><MapPin size={14} />Elazığ Merkez</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} Davutoğlu Demir Doğrama</span><span>Demir Doğrama · Metal İmalat · Özel Tasarım</span></div></footer><a className="floating-contact" aria-label="WhatsApp ile iletişime geçin" href={whatsappUrl()} target="_blank" rel="noopener noreferrer"><MessageCircle size={23} /></a>{settings.site.mobileBar&&<div className="mobile-contact">{settings.socials.filter(l=>l.active&&l.mobile&&safeUrl(l.url)).sort((a,b)=>a.order-b.order).map(l=><a key={l.id} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer">{l.platform==='Telefon'?<Phone size={19}/>:l.platform==='Instagram'?<Instagram size={19}/>:<MessageCircle size={19}/>} {l.name}</a>)}</div>}</>; }
+"use client";
+import { Link } from "@/components/navigation";
+import { useState } from "react";
+import {
+  ArrowUpRight,
+  Menu,
+  X,
+  Phone,
+  Instagram,
+  MessageCircle,
+  MapPin,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useBusiness, usePublishedSettings } from "@/lib/cms/store";
+import { safeUrl } from "@/lib/cms/model";
+import { useEffect } from "react";
+const navigation = [
+  { to: "/", label: "Ana Sayfa" },
+  { to: "/hizmetler", label: "Hizmetler" },
+  { to: "/projeler", label: "Projeler" },
+  { to: "/hakkimizda", label: "Hakkımızda" },
+  { to: "/blog", label: "Blog" },
+  { to: "/iletisim", label: "İletişim" },
+] as const;
+export function Brand() {
+  const settings = usePublishedSettings();
+  return (
+    <Link
+      to="/"
+      className="brand"
+      aria-label="Davutoğlu Demir Doğrama ana sayfa"
+    >
+      <img
+        className="brand-logo"
+        src="/brand/davutoglu-logo.png"
+        alt=""
+        aria-hidden="true"
+      />
+      <span>
+        <strong>
+          {settings.site.name === "Davutoğlu Demir Doğrama"
+            ? "DAVUTOĞLU"
+            : settings.site.name}
+        </strong>
+        <small>{settings.site.slogan}</small>
+      </span>
+    </Link>
+  );
+}
+export function ContactButtons({
+  service,
+  light = false,
+}: {
+  service?: string | undefined;
+  light?: boolean;
+}) {
+  const businessConfig = useBusiness();
+  const whatsappUrl = businessConfig.whatsappUrl;
+  return (
+    <div className="button-row">
+      <Button asChild size="lg" variant={light ? "secondary" : "default"}>
+        <a
+          href={whatsappUrl(service)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <MessageCircle />
+          WhatsApp'tan Teklif Al
+          <ArrowUpRight />
+        </a>
+      </Button>
+      <Button asChild size="lg" variant="outline">
+        <a href={businessConfig.phoneHref}>
+          <Phone />
+          Hemen Ara
+        </a>
+      </Button>
+    </div>
+  );
+}
+export function SiteHeader() {
+  const businessConfig = useBusiness();
+  const whatsappUrl = businessConfig.whatsappUrl;
+  const settings = usePublishedSettings();
+  const [open, setOpen] = useState(false);
+  return (
+    <header className="site-header">
+      <div className="container nav-inner">
+        <Brand />
+        <nav className="desktop-nav" aria-label="Ana menü">
+          {navigation
+            .filter((n) => settings.site.navbar.includes(n.to))
+            .map((n) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                activeProps={{ className: "active" }}
+                activeOptions={{ exact: n.to === "/" }}
+              >
+                {n.label}
+              </Link>
+            ))}
+        </nav>
+        <Button asChild className="nav-quote">
+          <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer">
+            Teklif Al
+            <ArrowUpRight />
+          </a>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="menu-toggle"
+          aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? <X /> : <Menu />}
+        </Button>
+      </div>
+      {open && (
+        <nav className="mobile-menu" aria-label="Mobil menü">
+          {navigation
+            .filter((n) => settings.site.navbar.includes(n.to))
+            .map((n) => (
+              <Link key={n.to} to={n.to} onClick={() => setOpen(false)}>
+                {n.label}
+                <ArrowUpRight size={16} />
+              </Link>
+            ))}
+        </nav>
+      )}
+    </header>
+  );
+}
+export function ContactBand() {
+  const businessConfig = useBusiness();
+  const settings = usePublishedSettings();
+  const section = settings.sections.find((s) => s.id === "contact");
+  return (
+    <section className="contact-band">
+      <div className="container contact-band-inner">
+        <div>
+          <span className="eyebrow">BİRLİKTE ÜRETELİM</span>
+          <h2>{section?.title}</h2>
+          <p>{section?.description}</p>
+        </div>
+        <div>
+          <ContactButtons light />
+          <a
+            className="instagram-link"
+            href={businessConfig.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Instagram size={17} />
+            Instagram'da çalışmalarımız
+            <ArrowUpRight size={16} />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+export function SiteFooter() {
+  const businessConfig = useBusiness();
+  const whatsappUrl = businessConfig.whatsappUrl;
+  const settings = usePublishedSettings();
+  useEffect(() => {
+    document.documentElement.dataset["palette"] = settings.site.palette;
+  }, [settings.site.palette]);
+  return (
+    <>
+      <footer className="site-footer">
+        <div className="container footer-top">
+          <div>
+            <Brand />
+            <p>{settings.site.footerDescription}</p>
+          </div>
+          <div>
+            <span className="footer-label">KEŞFEDİN</span>
+            {navigation
+              .filter((n) => settings.site.footer.includes(n.to))
+              .map((n) => (
+                <Link key={n.to} to={n.to}>
+                  {n.label}
+                </Link>
+              ))}
+          </div>
+          <div>
+            <span className="footer-label">İLETİŞİM</span>
+            <a href={businessConfig.phoneHref}>{businessConfig.phone}</a>
+            {settings.socials
+              .filter((l) => l.active && l.footer && safeUrl(l.url))
+              .map((l) => (
+                <a
+                  key={l.id}
+                  href={safeUrl(l.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {l.name}
+                  <ArrowUpRight size={14} />
+                </a>
+              ))}
+            <span className="location">
+              <MapPin size={14} />
+              Elazığ Merkez
+            </span>
+          </div>
+        </div>
+        <div className="container footer-bottom">
+          <span>© {new Date().getFullYear()} Davutoğlu Demir Doğrama</span>
+          <span>Demir Doğrama · Metal İmalat · Özel Tasarım</span>
+        </div>
+      </footer>
+      <a
+        className="floating-contact"
+        aria-label="WhatsApp ile iletişime geçin"
+        href={whatsappUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <MessageCircle size={23} />
+      </a>
+      {settings.site.mobileBar && (
+        <div className="mobile-contact">
+          {settings.socials
+            .filter((l) => l.active && l.mobile && safeUrl(l.url))
+            .sort((a, b) => a.order - b.order)
+            .map((l) => (
+              <a
+                key={l.id}
+                href={safeUrl(l.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {l.platform === "Telefon" ? (
+                  <Phone size={19} />
+                ) : l.platform === "Instagram" ? (
+                  <Instagram size={19} />
+                ) : (
+                  <MessageCircle size={19} />
+                )}{" "}
+                {l.name}
+              </a>
+            ))}
+        </div>
+      )}
+    </>
+  );
+}

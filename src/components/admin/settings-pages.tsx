@@ -1,36 +1,1228 @@
-import { useState } from 'react';
-import { Save,Eye,Plus,Trash2,GripVertical,Download,Upload,CheckCircle2,AlertCircle,ArrowUpRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog,DialogContent,DialogTitle,DialogDescription } from '@/components/ui/dialog';
-import { useCMS,PreviewProvider } from '@/lib/cms/store';
-import { type Settings,type CMSState,type SocialLink,validateBackup,safeUrl,publishedEntries } from '@/lib/cms/model';
-import { uploadMedia,removeMedia } from '@/lib/cms/media';
-import { Field,Toggle,SelectField,ImagePicker,MoveButtons,reorder,Confirm } from './controls';
-import { useUnsaved,UnsavedDialog } from './editor';
-import { MediaImage } from './media-image';
-import { HomePage } from '@/components/site/pages';
-import { SiteHeader,SiteFooter } from '@/components/site/shell';
-const sectionNames={hero:'Hero',services:'Hizmetler',projects:'Öne Çıkan Projeler',about:'Hakkımızda',process:'Üretim Süreci',blog:'Blog',contact:'İletişim CTA'};
-export function SettingsManager({module}:{module:'homepage'|'contact-social'|'faqs'|'seo-geo'|'settings'}) {
- const {state,update}=useCMS();const [settings,setSettings]=useState<Settings>(()=>structuredClone(state.draftSettings));const [initial,setInitial]=useState(JSON.stringify(state.draftSettings));const [preview,setPreview]=useState(false);const [message,setMessage]=useState('');const [tab,setTab]=useState('general');const [drag,setDrag]=useState<number|null>(null);const [pendingImport,setPendingImport]=useState<CMSState|null>(null);const [error,setError]=useState('');const blocker=useUnsaved(JSON.stringify(settings)!==initial);
- function save(publish=false){if(update(s=>({...s,draftSettings:structuredClone(settings),publishedSettings:publish?structuredClone(settings):s.publishedSettings}))){setInitial(JSON.stringify(settings));setMessage(publish?'Ayarlar bu tarayıcıda yerel olarak yayınlandı.':'Taslak kaydedildi. Sitedeki yayın sürümü değişmedi.');}}
- function business(key:keyof Settings['business'],v:string){setSettings(s=>({...s,business:{...s.business,[key]:v}}));}
- function hero(key:keyof Settings['hero'],v:string){setSettings(s=>({...s,hero:{...s.hero,[key]:v}}));}
- function seo(key:'title'|'description'|'siteUrl'|'ogImage'|'favicon'|'region',v:string){setSettings(s=>({...s,seo:{...s.seo,[key]:v}}));}
- function social(id:string,key:keyof SocialLink,v:string|boolean|number){setSettings(s=>({...s,socials:s.socials.map(l=>l.id===id?{...l,[key]:v}:l)}));}
- const names={homepage:'Ana Sayfa', 'contact-social':'İletişim & Sosyal Medya',faqs:'Sık Sorulan Sorular','seo-geo':'SEO & GEO',settings:'Site Ayarları'};
- const previewState={...state,publishedSettings:settings};
- async function importFile(file:File|undefined){if(!file)return;try{if(file.size>10*1024*1024)throw new Error('JSON yedeği en fazla 10 MB olabilir.');setPendingImport(validateBackup(JSON.parse(await file.text())));setError('');}catch(e){setError(e instanceof Error?`Yedek yüklenemedi: ${e.message}`:'Geçersiz yedek.');}}
- function exportFile(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='davutoglu-yerel-yedek.json';a.click();URL.revokeObjectURL(url);}
- const seoIssues=state.records.flatMap(r=>{const e=r.draft;return [{ok:!!e.description,label:`${e.title}: açıklama`},{ok:!!e.seoTitle,label:`${e.title}: SEO başlığı`},{ok:!!e.metaDescription,label:`${e.title}: meta description`},{ok:!!e.alt,label:`${e.title}: görsel alternatif metni`},...(e.type==='services'?[{ok:e.faqs.length>0||settings.faqs.some(f=>f.active&&f.serviceSlug===e.slug),label:`${e.title}: SSS`}]:[]),...(e.type==='blog'?[{ok:!!e.serviceSlug,label:`${e.title}: ilgili hizmet`},{ok:!!e.publishedAt,label:`${e.title}: tarih / güncellik incelemesi`}]:[])];});
- return <main className="admin-main"><div className="admin-page-heading"><div><span className="eyebrow">SİTE YÖNETİMİ</span><h1>{names[module]}</h1><p>Taslakları kaydedin; onayladığınız ayarları yalnızca bu tarayıcıda yayınlayın.</p></div><div className="admin-actions"><Button variant="outline" onClick={()=>setPreview(true)}><Eye/>Önizle</Button><Button variant="outline" onClick={()=>save()}><Save/>Taslak Kaydet</Button><Button onClick={()=>save(true)}>Yerel Yayınla</Button></div></div>{message&&<div className="admin-success" role="status">{message}</div>}{error&&<div className="admin-error" role="alert">{error}</div>}
- {module==='homepage'&&<><section className="editor-section"><h2>Hero içeriği</h2><Field label="Üst etiket" value={settings.hero.label} onChange={v=>hero('label',v)}/><Field label="Ana başlık" value={settings.hero.title} onChange={v=>hero('title',v)} multiline/><Field label="Alt açıklama" value={settings.hero.description} onChange={v=>hero('description',v)} multiline/><ImagePicker value={settings.hero.image} onChange={v=>hero('image',v)} label="Hero görseli"/><div className="form-grid"><Field label="Birincil buton metni" value={settings.hero.primaryText} onChange={v=>hero('primaryText',v)}/><Field label="Birincil buton hedefi" value={settings.hero.primaryHref} onChange={v=>hero('primaryHref',v)}/><Field label="İkincil buton metni" value={settings.hero.secondaryText} onChange={v=>hero('secondaryText',v)}/><Field label="İkincil buton hedefi" value={settings.hero.secondaryHref} onChange={v=>hero('secondaryHref',v)}/></div></section><section className="editor-section"><h2>Ana sayfa bölümleri</h2><p className="admin-muted">Tutamacı sürükleyerek veya oklarla bölümleri sıralayın.</p>{settings.sections.map((section,i)=><details className="section-editor" key={section.id} draggable onDragStart={()=>setDrag(i)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(drag!==null)setSettings(s=>({...s,sections:reorder(s.sections,drag,i)}));setDrag(null);}}><summary><GripVertical size={16}/><span>{String(i+1).padStart(2,'0')}</span><strong>{sectionNames[section.id]}</strong><span className={`status-badge ${section.active?'status-published':'status-archived'}`}>{section.active?'Aktif':'Pasif'}</span></summary><div className="section-editor-fields"><MoveButtons index={i} count={settings.sections.length} onMove={(from,to)=>setSettings(s=>({...s,sections:reorder(s.sections,from,to)}))}/><Toggle label="Bölümü göster" value={section.active} onChange={v=>setSettings(s=>({...s,sections:s.sections.map(x=>x.id===section.id?{...x,active:v}:x)}))}/><Field label="Bölüm başlığı" value={section.title} onChange={v=>setSettings(s=>({...s,sections:s.sections.map(x=>x.id===section.id?{...x,title:v}:x)}))}/><Field label="Bölüm açıklaması" value={section.description} multiline onChange={v=>setSettings(s=>({...s,sections:s.sections.map(x=>x.id===section.id?{...x,description:v}:x)}))}/><ImagePicker value={section.image} label="Bölüm görseli" onChange={v=>setSettings(s=>({...s,sections:s.sections.map(x=>x.id===section.id?{...x,image:v}:x)}))}/>{['services','projects','blog'].includes(section.id)&&<div className="choice-list">{publishedEntries(state,section.id==='services'?'services':section.id==='projects'?'projects':'blog').map(e=><Toggle key={e.id} label={e.title} value={section.selected.includes(e.slug)} onChange={v=>setSettings(s=>({...s,sections:s.sections.map(x=>x.id===section.id?{...x,selected:v?[...x.selected,e.slug]:x.selected.filter(y=>y!==e.slug)}:x)}))}/>)}</div>}</div></details>)}</section></>}
- {module==='contact-social'&&<><section className="editor-section"><h2>İşletme bilgileri</h2><div className="form-grid">{(['name','phone','whatsapp','email','city','address','maps','hours'] as const).map((key,i)=><Field key={key} label={['İşletme adı','Telefon','WhatsApp numarası (ülke koduyla)','E-posta (varsa)','Şehir','Açık adres (doğrulanmışsa)','Google Maps bağlantısı (varsa)','Çalışma saatleri (doğrulanmışsa)'][i]||key} value={settings.business[key]} onChange={v=>business(key,v)}/>)}</div><Field label="WhatsApp varsayılan mesajı" value={settings.business.whatsappMessage} onChange={v=>business('whatsappMessage',v)} multiline/><Button variant="outline" onClick={()=>{const number=settings.business.whatsapp.replace(/\D/g,'');setSettings(s=>({...s,socials:s.socials.map(l=>l.platform==='WhatsApp'?{...l,url:`https://wa.me/${number}?text=${encodeURIComponent(s.business.whatsappMessage)}`}:l.platform==='Telefon'?{...l,url:`tel:+${s.business.phone.replace(/\D/g,'').replace(/^0/,'90')}`}:l)}));setMessage('Telefon ve WhatsApp sosyal bağlantıları yeni bilgilerle eşitlendi.');}}>Telefon ve WhatsApp bağlantılarını güncelle</Button></section><section className="editor-section"><h2>Sosyal medya bağlantıları</h2>{settings.socials.map((l,i)=><details key={l.id} className="section-editor" open><summary><strong>{l.platform}</strong><span>{l.name}</span></summary><div className="section-editor-fields"><div className="form-grid"><SelectField label="Platform" value={l.platform} onChange={v=>social(l.id,'platform',v)} options={['Instagram','TikTok','Facebook','YouTube','LinkedIn','Pinterest','Google Maps','Google Yorumlar','Yorum Bırak','WhatsApp','Telefon','E-posta'].map(v=>({value:v,label:v}))}/><Field label="Görünen isim" value={l.name} onChange={v=>social(l.id,'name',v)}/><Field label="URL / tel: / mailto:" value={l.url} onChange={v=>social(l.id,'url',v)}/></div><div className="admin-toggle-row">{(['active','footer','navbar','mobile'] as const).map((key,j)=><Toggle key={key} label={['Aktif','Footer','Navbar','Mobil iletişim'][j]||key} value={l[key]} onChange={v=>social(l.id,key,v)}/>)}</div><div className="admin-actions"><MoveButtons index={i} count={settings.socials.length} onMove={(from,to)=>setSettings(s=>({...s,socials:reorder(s.socials,from,to).map((x,j)=>({...x,order:j}))}))}/><Button variant="outline" disabled={!safeUrl(l.url)} asChild={!!safeUrl(l.url)}>{safeUrl(l.url)?<a href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer">Bağlantıyı test et<ArrowUpRight/></a>:<span>Geçerli bağlantı girin</span>}</Button><Button variant="ghost" onClick={()=>setSettings(s=>({...s,socials:s.socials.filter(x=>x.id!==l.id)}))}><Trash2/>Kaldır</Button></div></div></details>)}<Button variant="outline" onClick={()=>setSettings(s=>({...s,socials:[...s.socials,{id:crypto.randomUUID(),platform:'Instagram',name:'',url:'',active:false,footer:false,navbar:false,mobile:false,order:s.socials.length}]}))}><Plus/>Bağlantı Ekle</Button></section></>}
- {module==='faqs'&&<section className="editor-section"><h2>Soru ve cevaplar</h2>{settings.faqs.map((f,i)=><details className="section-editor" key={f.id}><summary><strong>{f.question||'Yeni soru'}</strong><span className="admin-muted">{f.category}</span></summary><div className="section-editor-fields"><Field label="Soru" value={f.question} onChange={v=>setSettings(s=>({...s,faqs:s.faqs.map(x=>x.id===f.id?{...x,question:v}:x)}))}/><Field label="Cevap" value={f.answer} multiline onChange={v=>setSettings(s=>({...s,faqs:s.faqs.map(x=>x.id===f.id?{...x,answer:v}:x)}))}/><Field label="Kategori" value={f.category} onChange={v=>setSettings(s=>({...s,faqs:s.faqs.map(x=>x.id===f.id?{...x,category:v}:x)}))}/><SelectField label="İlgili hizmet" value={f.serviceSlug} options={[{value:'',label:'Seçin'},...publishedEntries(state,'services').map(e=>({value:e.slug,label:e.title}))]} onChange={v=>setSettings(s=>({...s,faqs:s.faqs.map(x=>x.id===f.id?{...x,serviceSlug:v}:x)}))}/><Toggle label="Aktif" value={f.active} onChange={v=>setSettings(s=>({...s,faqs:s.faqs.map(x=>x.id===f.id?{...x,active:v}:x)}))}/><div className="admin-actions"><MoveButtons index={i} count={settings.faqs.length} onMove={(from,to)=>setSettings(s=>({...s,faqs:reorder(s.faqs,from,to).map((x,j)=>({...x,order:j}))}))}/><Button variant="ghost" onClick={()=>setSettings(s=>({...s,faqs:s.faqs.filter(x=>x.id!==f.id)}))}><Trash2/>Sil</Button></div></div></details>)}<Button variant="outline" onClick={()=>setSettings(s=>({...s,faqs:[...s.faqs,{id:crypto.randomUUID(),question:'',answer:'',category:'',serviceSlug:'',order:s.faqs.length,active:true}]}))}><Plus/>Soru Ekle</Button></section>}
- {module==='seo-geo'&&<><div className="admin-tabs">{[{id:'general',label:'Genel SEO'},{id:'pages',label:'Sayfa SEO'},{id:'business',label:'İşletme Kimliği'},{id:'schema',label:'Yapılandırılmış Veri'},{id:'checks',label:'GEO Kontrolleri'}].map(t=><Button key={t.id} variant={tab===t.id?'default':'ghost'} onClick={()=>setTab(t.id)}>{t.label}</Button>)}</div><section className="editor-section">{tab==='general'&&<><h2>Genel SEO ayarları</h2><Field label="Site başlığı" value={settings.seo.title} onChange={v=>seo('title',v)}/><Field label="Varsayılan meta description" value={settings.seo.description} multiline onChange={v=>seo('description',v)}/><Field label="Gerçek site URL (belirlenince)" value={settings.seo.siteUrl} onChange={v=>seo('siteUrl',v)}/><ImagePicker label="OG görseli" value={settings.seo.ogImage} onChange={v=>seo('ogImage',v)}/><ImagePicker label="Favicon" value={settings.seo.favicon} onChange={v=>seo('favicon',v)}/></>}{tab==='pages'&&<>{[['/','Ana Sayfa'],['/hakkimizda','Hakkımızda'],['/hizmetler','Hizmetler'],['/projeler','Projeler'],['/blog','Blog'],['/iletisim','İletişim']].map(([path,label])=>{if(!path)return null;return <details key={path} className="section-editor"><summary>{label}</summary><div className="section-editor-fields"><Field label="SEO başlığı" value={settings.seo.pages[path]?.title||''} onChange={v=>setSettings(s=>({...s,seo:{...s.seo,pages:{...s.seo.pages,[path]:{title:v,description:s.seo.pages[path]?.description||''}}}}))}/><Field label="Meta açıklaması" value={settings.seo.pages[path]?.description||''} multiline onChange={v=>setSettings(s=>({...s,seo:{...s.seo,pages:{...s.seo.pages,[path]:{title:s.seo.pages[path]?.title||'',description:v}}}}))}/></div></details>;})}</>}{tab==='business'&&<><Field label="İşletme adı" value={settings.business.name} onChange={v=>business('name',v)}/><Field label="Açıklama" value={settings.business.description} multiline onChange={v=>business('description',v)}/><Field label="Telefon" value={settings.business.phone} onChange={v=>business('phone',v)}/><Field label="Adres (doğrulanmışsa)" value={settings.business.address} onChange={v=>business('address',v)}/><Field label="Şehir" value={settings.business.city} onChange={v=>business('city',v)}/><Field label="Hizmet bölgesi" value={settings.seo.region} onChange={v=>seo('region',v)}/></>}{tab==='schema'&&<><h2>JSON-LD önizlemesi</h2><p className="admin-muted">Yalnızca girilmiş işletme bilgileri. Özel görünüm veya sıralama garantisi verilmez.</p><pre className="schema-preview">{JSON.stringify({'@context':'https://schema.org','@type':'LocalBusiness',name:settings.business.name,description:settings.business.description,telephone:settings.business.phone,areaServed:settings.seo.region,...(settings.business.address?{address:settings.business.address}:{}),...(settings.seo.siteUrl?{url:settings.seo.siteUrl}:{}),sameAs:settings.socials.filter(l=>l.active&&l.url.startsWith('https://')).map(l=>l.url)},null,2)}</pre></>}{tab==='checks'&&<><h2>İçerik kontrol listesi</h2><p className="admin-muted">{seoIssues.filter(i=>!i.ok).length} eksik alan. Bu liste resmî bir yapay zekâ puanı değildir.</p><div className="geo-checks">{seoIssues.map((i,j)=><div key={j}>{i.ok?<CheckCircle2 size={16}/>:<AlertCircle size={16}/>}<span>{i.label}</span><small>{i.ok?'Tamam':'İnceleyin'}</small></div>)}</div></>}</section></>}
- {module==='settings'&&<><section className="editor-section"><h2>Marka ve görünüm</h2><Field label="Site adı" value={settings.site.name} onChange={v=>setSettings(s=>({...s,site:{...s.site,name:v}}))}/><Field label="Slogan" value={settings.site.slogan} onChange={v=>setSettings(s=>({...s,site:{...s.site,slogan:v}}))}/><ImagePicker label="Logo" value={settings.site.logo} onChange={v=>setSettings(s=>({...s,site:{...s.site,logo:v}}))}/><ImagePicker label="Favicon" value={settings.site.favicon} onChange={v=>setSettings(s=>({...s,site:{...s.site,favicon:v}}))}/><SelectField label="Güvenli tema paleti" value={settings.site.palette} onChange={v=>setSettings(s=>({...s,site:{...s.site,palette:v as Settings['site']['palette']}}))} options={[{value:'original',label:'Orijinal · Antrasit & Bakır'},{value:'graphite',label:'Grafit · Nötr'},{value:'olive',label:'Zeytin · Mat vurgu'}]}/><Field label="Footer açıklaması" multiline value={settings.site.footerDescription} onChange={v=>setSettings(s=>({...s,site:{...s.site,footerDescription:v}}))}/><div className="admin-toggle-row"><Toggle label="Mobil iletişim barı" value={settings.site.mobileBar} onChange={v=>setSettings(s=>({...s,site:{...s.site,mobileBar:v}}))}/><Toggle label="Ana sayfada blog" value={settings.site.showBlog} onChange={v=>setSettings(s=>({...s,site:{...s.site,showBlog:v}}))}/><Toggle label="Ana sayfada projeler" value={settings.site.showProjects} onChange={v=>setSettings(s=>({...s,site:{...s.site,showProjects:v}}))}/></div><h3>Gezinme bağlantıları</h3>{[['/','Ana Sayfa'],['/hizmetler','Hizmetler'],['/projeler','Projeler'],['/hakkimizda','Hakkımızda'],['/blog','Blog'],['/iletisim','İletişim']].map(([path,label])=>path?<div className="nav-setting-row" key={path}><span>{label}</span>{(['navbar','footer'] as const).map(key=><Toggle key={key} label={key==='navbar'?'Navbar':'Footer'} value={settings.site[key].includes(path)} onChange={v=>setSettings(s=>({...s,site:{...s.site,[key]:v?[...s.site[key],path]:s.site[key].filter(x=>x!==path)}}))}/>)}</div>:null)}</section><section className="editor-section"><h2>Yerel yedekleme</h2><p className="admin-muted">JSON yedeği içerikleri ve ayarları kapsar. Yüklenen görsel dosyaları dahil değildir; başka tarayıcıya aktarılırsa yeniden yüklenmelidir.</p><div className="admin-actions"><Button variant="outline" onClick={exportFile}><Download/>JSON Dışa Aktar</Button><label className="upload-control"><Upload size={16}/>JSON İçe Aktar<input type="file" accept="application/json,.json" onChange={e=>importFile(e.target.files?.[0])}/></label></div></section></>}
- <Confirm open={pendingImport!==null} title="Yerel veriler değiştirilsin mi?" description="Mevcut içerik ve ayarlar bu yedekle değiştirilecek. Görsel dosyaları yedeğe dahil değildir." onCancel={()=>setPendingImport(null)} onConfirm={()=>{if(pendingImport&&update(()=>pendingImport)){setSettings(pendingImport.draftSettings);setInitial(JSON.stringify(pendingImport.draftSettings));setPendingImport(null);setMessage('Yedek geri yüklendi.');}}}/><UnsavedDialog blocker={blocker}/><Dialog open={preview} onOpenChange={setPreview}><DialogContent className="preview-dialog"><DialogTitle>Site önizlemesi</DialogTitle><DialogDescription>Kaydedilmemiş ayarlar. Sitedeki yerel yayın sürümü değişmez.</DialogDescription><PreviewProvider state={previewState}><div className="public-preview"><SiteHeader/><HomePage/><SiteFooter/></div></PreviewProvider></DialogContent></Dialog></main>;
+"use client";
+import { useState } from "react";
+import {
+  Save,
+  Eye,
+  Plus,
+  Trash2,
+  GripVertical,
+  Download,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  ArrowUpRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useCMS, PreviewProvider } from "@/lib/cms/store";
+import {
+  type Settings,
+  type CMSState,
+  type SocialLink,
+  validateBackup,
+  safeUrl,
+  publishedEntries,
+} from "@/lib/cms/model";
+import { uploadMedia, removeMedia } from "@/lib/cms/media";
+import {
+  Field,
+  Toggle,
+  SelectField,
+  ImagePicker,
+  MoveButtons,
+  reorder,
+  Confirm,
+} from "./controls";
+import { useUnsaved, UnsavedDialog } from "./editor";
+import { MediaImage } from "./media-image";
+import { HomePage } from "@/components/site/pages";
+import { SiteHeader, SiteFooter } from "@/components/site/shell";
+const sectionNames = {
+  hero: "Hero",
+  services: "Hizmetler",
+  projects: "Öne Çıkan Projeler",
+  about: "Hakkımızda",
+  process: "Üretim Süreci",
+  blog: "Blog",
+  contact: "İletişim CTA",
+};
+export function SettingsManager({
+  module,
+}: {
+  module: "homepage" | "contact-social" | "faqs" | "seo-geo" | "settings";
+}) {
+  const { state, update } = useCMS();
+  const [settings, setSettings] = useState<Settings>(() =>
+    structuredClone(state.draftSettings),
+  );
+  const [initial, setInitial] = useState(JSON.stringify(state.draftSettings));
+  const [preview, setPreview] = useState(false);
+  const [message, setMessage] = useState("");
+  const [tab, setTab] = useState("general");
+  const [drag, setDrag] = useState<number | null>(null);
+  const [pendingImport, setPendingImport] = useState<CMSState | null>(null);
+  const [error, setError] = useState("");
+  const blocker = useUnsaved(JSON.stringify(settings) !== initial);
+  function save(publish = false) {
+    if (
+      update((s) => ({
+        ...s,
+        draftSettings: structuredClone(settings),
+        publishedSettings: publish
+          ? structuredClone(settings)
+          : s.publishedSettings,
+      }))
+    ) {
+      setInitial(JSON.stringify(settings));
+      setMessage(
+        publish
+          ? "Ayarlar bu tarayıcıda yerel olarak yayınlandı."
+          : "Taslak kaydedildi. Sitedeki yayın sürümü değişmedi.",
+      );
+    }
+  }
+  function business(key: keyof Settings["business"], v: string) {
+    setSettings((s) => ({ ...s, business: { ...s.business, [key]: v } }));
+  }
+  function hero(key: keyof Settings["hero"], v: string) {
+    setSettings((s) => ({ ...s, hero: { ...s.hero, [key]: v } }));
+  }
+  function seo(
+    key: "title" | "description" | "siteUrl" | "ogImage" | "favicon" | "region",
+    v: string,
+  ) {
+    setSettings((s) => ({ ...s, seo: { ...s.seo, [key]: v } }));
+  }
+  function social(
+    id: string,
+    key: keyof SocialLink,
+    v: string | boolean | number,
+  ) {
+    setSettings((s) => ({
+      ...s,
+      socials: s.socials.map((l) => (l.id === id ? { ...l, [key]: v } : l)),
+    }));
+  }
+  const names = {
+    homepage: "Ana Sayfa",
+    "contact-social": "İletişim & Sosyal Medya",
+    faqs: "Sık Sorulan Sorular",
+    "seo-geo": "SEO & GEO",
+    settings: "Site Ayarları",
+  };
+  const previewState = { ...state, publishedSettings: settings };
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      if (file.size > 10 * 1024 * 1024)
+        throw new Error("JSON yedeği en fazla 10 MB olabilir.");
+      setPendingImport(validateBackup(JSON.parse(await file.text())));
+      setError("");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? `Yedek yüklenemedi: ${e.message}`
+          : "Geçersiz yedek.",
+      );
+    }
+  }
+  function exportFile() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "davutoglu-yerel-yedek.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  const seoIssues = state.records.flatMap((r) => {
+    const e = r.draft;
+    return [
+      { ok: !!e.description, label: `${e.title}: açıklama` },
+      { ok: !!e.seoTitle, label: `${e.title}: SEO başlığı` },
+      { ok: !!e.metaDescription, label: `${e.title}: meta description` },
+      { ok: !!e.alt, label: `${e.title}: görsel alternatif metni` },
+      ...(e.type === "services"
+        ? [
+            {
+              ok:
+                e.faqs.length > 0 ||
+                settings.faqs.some((f) => f.active && f.serviceSlug === e.slug),
+              label: `${e.title}: SSS`,
+            },
+          ]
+        : []),
+      ...(e.type === "blog"
+        ? [
+            { ok: !!e.serviceSlug, label: `${e.title}: ilgili hizmet` },
+            {
+              ok: !!e.publishedAt,
+              label: `${e.title}: tarih / güncellik incelemesi`,
+            },
+          ]
+        : []),
+    ];
+  });
+  return (
+    <main className="admin-main">
+      <div className="admin-page-heading">
+        <div>
+          <span className="eyebrow">SİTE YÖNETİMİ</span>
+          <h1>{names[module]}</h1>
+          <p>
+            Taslakları kaydedin; onayladığınız ayarları yalnızca bu tarayıcıda
+            yayınlayın.
+          </p>
+        </div>
+        <div className="admin-actions">
+          <Button variant="outline" onClick={() => setPreview(true)}>
+            <Eye />
+            Önizle
+          </Button>
+          <Button variant="outline" onClick={() => save()}>
+            <Save />
+            Taslak Kaydet
+          </Button>
+          <Button onClick={() => save(true)}>Yerel Yayınla</Button>
+        </div>
+      </div>
+      {message && (
+        <div className="admin-success" role="status">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="admin-error" role="alert">
+          {error}
+        </div>
+      )}
+      {module === "homepage" && (
+        <>
+          <section className="editor-section">
+            <h2>Hero içeriği</h2>
+            <Field
+              label="Üst etiket"
+              value={settings.hero.label}
+              onChange={(v) => hero("label", v)}
+            />
+            <Field
+              label="Ana başlık"
+              value={settings.hero.title}
+              onChange={(v) => hero("title", v)}
+              multiline
+            />
+            <Field
+              label="Alt açıklama"
+              value={settings.hero.description}
+              onChange={(v) => hero("description", v)}
+              multiline
+            />
+            <ImagePicker
+              value={settings.hero.image}
+              onChange={(v) => hero("image", v)}
+              label="Hero görseli"
+            />
+            <div className="form-grid">
+              <Field
+                label="Birincil buton metni"
+                value={settings.hero.primaryText}
+                onChange={(v) => hero("primaryText", v)}
+              />
+              <Field
+                label="Birincil buton hedefi"
+                value={settings.hero.primaryHref}
+                onChange={(v) => hero("primaryHref", v)}
+              />
+              <Field
+                label="İkincil buton metni"
+                value={settings.hero.secondaryText}
+                onChange={(v) => hero("secondaryText", v)}
+              />
+              <Field
+                label="İkincil buton hedefi"
+                value={settings.hero.secondaryHref}
+                onChange={(v) => hero("secondaryHref", v)}
+              />
+            </div>
+          </section>
+          <section className="editor-section">
+            <h2>Ana sayfa bölümleri</h2>
+            <p className="admin-muted">
+              Tutamacı sürükleyerek veya oklarla bölümleri sıralayın.
+            </p>
+            {settings.sections.map((section, i) => (
+              <details
+                className="section-editor"
+                key={section.id}
+                draggable
+                onDragStart={() => setDrag(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (drag !== null)
+                    setSettings((s) => ({
+                      ...s,
+                      sections: reorder(s.sections, drag, i),
+                    }));
+                  setDrag(null);
+                }}
+              >
+                <summary>
+                  <GripVertical size={16} />
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                  <strong>{sectionNames[section.id]}</strong>
+                  <span
+                    className={`status-badge ${section.active ? "status-published" : "status-archived"}`}
+                  >
+                    {section.active ? "Aktif" : "Pasif"}
+                  </span>
+                </summary>
+                <div className="section-editor-fields">
+                  <MoveButtons
+                    index={i}
+                    count={settings.sections.length}
+                    onMove={(from, to) =>
+                      setSettings((s) => ({
+                        ...s,
+                        sections: reorder(s.sections, from, to),
+                      }))
+                    }
+                  />
+                  <Toggle
+                    label="Bölümü göster"
+                    value={section.active}
+                    onChange={(v) =>
+                      setSettings((s) => ({
+                        ...s,
+                        sections: s.sections.map((x) =>
+                          x.id === section.id ? { ...x, active: v } : x,
+                        ),
+                      }))
+                    }
+                  />
+                  <Field
+                    label="Bölüm başlığı"
+                    value={section.title}
+                    onChange={(v) =>
+                      setSettings((s) => ({
+                        ...s,
+                        sections: s.sections.map((x) =>
+                          x.id === section.id ? { ...x, title: v } : x,
+                        ),
+                      }))
+                    }
+                  />
+                  <Field
+                    label="Bölüm açıklaması"
+                    value={section.description}
+                    multiline
+                    onChange={(v) =>
+                      setSettings((s) => ({
+                        ...s,
+                        sections: s.sections.map((x) =>
+                          x.id === section.id ? { ...x, description: v } : x,
+                        ),
+                      }))
+                    }
+                  />
+                  <ImagePicker
+                    value={section.image}
+                    label="Bölüm görseli"
+                    onChange={(v) =>
+                      setSettings((s) => ({
+                        ...s,
+                        sections: s.sections.map((x) =>
+                          x.id === section.id ? { ...x, image: v } : x,
+                        ),
+                      }))
+                    }
+                  />
+                  {["services", "projects", "blog"].includes(section.id) && (
+                    <div className="choice-list">
+                      {publishedEntries(
+                        state,
+                        section.id === "services"
+                          ? "services"
+                          : section.id === "projects"
+                            ? "projects"
+                            : "blog",
+                      ).map((e) => (
+                        <Toggle
+                          key={e.id}
+                          label={e.title}
+                          value={section.selected.includes(e.slug)}
+                          onChange={(v) =>
+                            setSettings((s) => ({
+                              ...s,
+                              sections: s.sections.map((x) =>
+                                x.id === section.id
+                                  ? {
+                                      ...x,
+                                      selected: v
+                                        ? [...x.selected, e.slug]
+                                        : x.selected.filter(
+                                            (y) => y !== e.slug,
+                                          ),
+                                    }
+                                  : x,
+                              ),
+                            }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
+            ))}
+          </section>
+        </>
+      )}
+      {module === "contact-social" && (
+        <>
+          <section className="editor-section">
+            <h2>İşletme bilgileri</h2>
+            <div className="form-grid">
+              {(
+                [
+                  "name",
+                  "phone",
+                  "whatsapp",
+                  "email",
+                  "city",
+                  "address",
+                  "maps",
+                  "hours",
+                ] as const
+              ).map((key, i) => (
+                <Field
+                  key={key}
+                  label={
+                    [
+                      "İşletme adı",
+                      "Telefon",
+                      "WhatsApp numarası (ülke koduyla)",
+                      "E-posta (varsa)",
+                      "Şehir",
+                      "Açık adres (doğrulanmışsa)",
+                      "Google Maps bağlantısı (varsa)",
+                      "Çalışma saatleri (doğrulanmışsa)",
+                    ][i] || key
+                  }
+                  value={settings.business[key]}
+                  onChange={(v) => business(key, v)}
+                />
+              ))}
+            </div>
+            <Field
+              label="WhatsApp varsayılan mesajı"
+              value={settings.business.whatsappMessage}
+              onChange={(v) => business("whatsappMessage", v)}
+              multiline
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                const number = settings.business.whatsapp.replace(/\D/g, "");
+                setSettings((s) => ({
+                  ...s,
+                  socials: s.socials.map((l) =>
+                    l.platform === "WhatsApp"
+                      ? {
+                          ...l,
+                          url: `https://wa.me/${number}?text=${encodeURIComponent(s.business.whatsappMessage)}`,
+                        }
+                      : l.platform === "Telefon"
+                        ? {
+                            ...l,
+                            url: `tel:+${s.business.phone.replace(/\D/g, "").replace(/^0/, "90")}`,
+                          }
+                        : l,
+                  ),
+                }));
+                setMessage(
+                  "Telefon ve WhatsApp sosyal bağlantıları yeni bilgilerle eşitlendi.",
+                );
+              }}
+            >
+              Telefon ve WhatsApp bağlantılarını güncelle
+            </Button>
+          </section>
+          <section className="editor-section">
+            <h2>Sosyal medya bağlantıları</h2>
+            {settings.socials.map((l, i) => (
+              <details key={l.id} className="section-editor" open>
+                <summary>
+                  <strong>{l.platform}</strong>
+                  <span>{l.name}</span>
+                </summary>
+                <div className="section-editor-fields">
+                  <div className="form-grid">
+                    <SelectField
+                      label="Platform"
+                      value={l.platform}
+                      onChange={(v) => social(l.id, "platform", v)}
+                      options={[
+                        "Instagram",
+                        "TikTok",
+                        "Facebook",
+                        "YouTube",
+                        "LinkedIn",
+                        "Pinterest",
+                        "Google Maps",
+                        "Google Yorumlar",
+                        "Yorum Bırak",
+                        "WhatsApp",
+                        "Telefon",
+                        "E-posta",
+                      ].map((v) => ({ value: v, label: v }))}
+                    />
+                    <Field
+                      label="Görünen isim"
+                      value={l.name}
+                      onChange={(v) => social(l.id, "name", v)}
+                    />
+                    <Field
+                      label="URL / tel: / mailto:"
+                      value={l.url}
+                      onChange={(v) => social(l.id, "url", v)}
+                    />
+                  </div>
+                  <div className="admin-toggle-row">
+                    {(["active", "footer", "navbar", "mobile"] as const).map(
+                      (key, j) => (
+                        <Toggle
+                          key={key}
+                          label={
+                            ["Aktif", "Footer", "Navbar", "Mobil iletişim"][
+                              j
+                            ] || key
+                          }
+                          value={l[key]}
+                          onChange={(v) => social(l.id, key, v)}
+                        />
+                      ),
+                    )}
+                  </div>
+                  <div className="admin-actions">
+                    <MoveButtons
+                      index={i}
+                      count={settings.socials.length}
+                      onMove={(from, to) =>
+                        setSettings((s) => ({
+                          ...s,
+                          socials: reorder(s.socials, from, to).map((x, j) => ({
+                            ...x,
+                            order: j,
+                          })),
+                        }))
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={!safeUrl(l.url)}
+                      asChild={!!safeUrl(l.url)}
+                    >
+                      {safeUrl(l.url) ? (
+                        <a
+                          href={safeUrl(l.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Bağlantıyı test et
+                          <ArrowUpRight />
+                        </a>
+                      ) : (
+                        <span>Geçerli bağlantı girin</span>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        setSettings((s) => ({
+                          ...s,
+                          socials: s.socials.filter((x) => x.id !== l.id),
+                        }))
+                      }
+                    >
+                      <Trash2 />
+                      Kaldır
+                    </Button>
+                  </div>
+                </div>
+              </details>
+            ))}
+            <Button
+              variant="outline"
+              onClick={() =>
+                setSettings((s) => ({
+                  ...s,
+                  socials: [
+                    ...s.socials,
+                    {
+                      id: crypto.randomUUID(),
+                      platform: "Instagram",
+                      name: "",
+                      url: "",
+                      active: false,
+                      footer: false,
+                      navbar: false,
+                      mobile: false,
+                      order: s.socials.length,
+                    },
+                  ],
+                }))
+              }
+            >
+              <Plus />
+              Bağlantı Ekle
+            </Button>
+          </section>
+        </>
+      )}
+      {module === "faqs" && (
+        <section className="editor-section">
+          <h2>Soru ve cevaplar</h2>
+          {settings.faqs.map((f, i) => (
+            <details className="section-editor" key={f.id}>
+              <summary>
+                <strong>{f.question || "Yeni soru"}</strong>
+                <span className="admin-muted">{f.category}</span>
+              </summary>
+              <div className="section-editor-fields">
+                <Field
+                  label="Soru"
+                  value={f.question}
+                  onChange={(v) =>
+                    setSettings((s) => ({
+                      ...s,
+                      faqs: s.faqs.map((x) =>
+                        x.id === f.id ? { ...x, question: v } : x,
+                      ),
+                    }))
+                  }
+                />
+                <Field
+                  label="Cevap"
+                  value={f.answer}
+                  multiline
+                  onChange={(v) =>
+                    setSettings((s) => ({
+                      ...s,
+                      faqs: s.faqs.map((x) =>
+                        x.id === f.id ? { ...x, answer: v } : x,
+                      ),
+                    }))
+                  }
+                />
+                <Field
+                  label="Kategori"
+                  value={f.category}
+                  onChange={(v) =>
+                    setSettings((s) => ({
+                      ...s,
+                      faqs: s.faqs.map((x) =>
+                        x.id === f.id ? { ...x, category: v } : x,
+                      ),
+                    }))
+                  }
+                />
+                <SelectField
+                  label="İlgili hizmet"
+                  value={f.serviceSlug}
+                  options={[
+                    { value: "", label: "Seçin" },
+                    ...publishedEntries(state, "services").map((e) => ({
+                      value: e.slug,
+                      label: e.title,
+                    })),
+                  ]}
+                  onChange={(v) =>
+                    setSettings((s) => ({
+                      ...s,
+                      faqs: s.faqs.map((x) =>
+                        x.id === f.id ? { ...x, serviceSlug: v } : x,
+                      ),
+                    }))
+                  }
+                />
+                <Toggle
+                  label="Aktif"
+                  value={f.active}
+                  onChange={(v) =>
+                    setSettings((s) => ({
+                      ...s,
+                      faqs: s.faqs.map((x) =>
+                        x.id === f.id ? { ...x, active: v } : x,
+                      ),
+                    }))
+                  }
+                />
+                <div className="admin-actions">
+                  <MoveButtons
+                    index={i}
+                    count={settings.faqs.length}
+                    onMove={(from, to) =>
+                      setSettings((s) => ({
+                        ...s,
+                        faqs: reorder(s.faqs, from, to).map((x, j) => ({
+                          ...x,
+                          order: j,
+                        })),
+                      }))
+                    }
+                  />
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setSettings((s) => ({
+                        ...s,
+                        faqs: s.faqs.filter((x) => x.id !== f.id),
+                      }))
+                    }
+                  >
+                    <Trash2 />
+                    Sil
+                  </Button>
+                </div>
+              </div>
+            </details>
+          ))}
+          <Button
+            variant="outline"
+            onClick={() =>
+              setSettings((s) => ({
+                ...s,
+                faqs: [
+                  ...s.faqs,
+                  {
+                    id: crypto.randomUUID(),
+                    question: "",
+                    answer: "",
+                    category: "",
+                    serviceSlug: "",
+                    order: s.faqs.length,
+                    active: true,
+                  },
+                ],
+              }))
+            }
+          >
+            <Plus />
+            Soru Ekle
+          </Button>
+        </section>
+      )}
+      {module === "seo-geo" && (
+        <>
+          <div className="admin-tabs">
+            {[
+              { id: "general", label: "Genel SEO" },
+              { id: "pages", label: "Sayfa SEO" },
+              { id: "business", label: "İşletme Kimliği" },
+              { id: "schema", label: "Yapılandırılmış Veri" },
+              { id: "checks", label: "GEO Kontrolleri" },
+            ].map((t) => (
+              <Button
+                key={t.id}
+                variant={tab === t.id ? "default" : "ghost"}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+          <section className="editor-section">
+            {tab === "general" && (
+              <>
+                <h2>Genel SEO ayarları</h2>
+                <Field
+                  label="Site başlığı"
+                  value={settings.seo.title}
+                  onChange={(v) => seo("title", v)}
+                />
+                <Field
+                  label="Varsayılan meta description"
+                  value={settings.seo.description}
+                  multiline
+                  onChange={(v) => seo("description", v)}
+                />
+                <Field
+                  label="Gerçek site URL (belirlenince)"
+                  value={settings.seo.siteUrl}
+                  onChange={(v) => seo("siteUrl", v)}
+                />
+                <ImagePicker
+                  label="OG görseli"
+                  value={settings.seo.ogImage}
+                  onChange={(v) => seo("ogImage", v)}
+                />
+                <ImagePicker
+                  label="Favicon"
+                  value={settings.seo.favicon}
+                  onChange={(v) => seo("favicon", v)}
+                />
+              </>
+            )}
+            {tab === "pages" && (
+              <>
+                {[
+                  ["/", "Ana Sayfa"],
+                  ["/hakkimizda", "Hakkımızda"],
+                  ["/hizmetler", "Hizmetler"],
+                  ["/projeler", "Projeler"],
+                  ["/blog", "Blog"],
+                  ["/iletisim", "İletişim"],
+                ].map(([path, label]) => {
+                  if (!path) return null;
+                  return (
+                    <details key={path} className="section-editor">
+                      <summary>{label}</summary>
+                      <div className="section-editor-fields">
+                        <Field
+                          label="SEO başlığı"
+                          value={settings.seo.pages[path]?.title || ""}
+                          onChange={(v) =>
+                            setSettings((s) => ({
+                              ...s,
+                              seo: {
+                                ...s.seo,
+                                pages: {
+                                  ...s.seo.pages,
+                                  [path]: {
+                                    title: v,
+                                    description:
+                                      s.seo.pages[path]?.description || "",
+                                  },
+                                },
+                              },
+                            }))
+                          }
+                        />
+                        <Field
+                          label="Meta açıklaması"
+                          value={settings.seo.pages[path]?.description || ""}
+                          multiline
+                          onChange={(v) =>
+                            setSettings((s) => ({
+                              ...s,
+                              seo: {
+                                ...s.seo,
+                                pages: {
+                                  ...s.seo.pages,
+                                  [path]: {
+                                    title: s.seo.pages[path]?.title || "",
+                                    description: v,
+                                  },
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </details>
+                  );
+                })}
+              </>
+            )}
+            {tab === "business" && (
+              <>
+                <Field
+                  label="İşletme adı"
+                  value={settings.business.name}
+                  onChange={(v) => business("name", v)}
+                />
+                <Field
+                  label="Açıklama"
+                  value={settings.business.description}
+                  multiline
+                  onChange={(v) => business("description", v)}
+                />
+                <Field
+                  label="Telefon"
+                  value={settings.business.phone}
+                  onChange={(v) => business("phone", v)}
+                />
+                <Field
+                  label="Adres (doğrulanmışsa)"
+                  value={settings.business.address}
+                  onChange={(v) => business("address", v)}
+                />
+                <Field
+                  label="Şehir"
+                  value={settings.business.city}
+                  onChange={(v) => business("city", v)}
+                />
+                <Field
+                  label="Hizmet bölgesi"
+                  value={settings.seo.region}
+                  onChange={(v) => seo("region", v)}
+                />
+              </>
+            )}
+            {tab === "schema" && (
+              <>
+                <h2>JSON-LD önizlemesi</h2>
+                <p className="admin-muted">
+                  Yalnızca girilmiş işletme bilgileri. Özel görünüm veya
+                  sıralama garantisi verilmez.
+                </p>
+                <pre className="schema-preview">
+                  {JSON.stringify(
+                    {
+                      "@context": "https://schema.org",
+                      "@type": "LocalBusiness",
+                      name: settings.business.name,
+                      description: settings.business.description,
+                      telephone: settings.business.phone,
+                      areaServed: settings.seo.region,
+                      ...(settings.business.address
+                        ? { address: settings.business.address }
+                        : {}),
+                      ...(settings.seo.siteUrl
+                        ? { url: settings.seo.siteUrl }
+                        : {}),
+                      sameAs: settings.socials
+                        .filter((l) => l.active && l.url.startsWith("https://"))
+                        .map((l) => l.url),
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </>
+            )}
+            {tab === "checks" && (
+              <>
+                <h2>İçerik kontrol listesi</h2>
+                <p className="admin-muted">
+                  {seoIssues.filter((i) => !i.ok).length} eksik alan. Bu liste
+                  resmî bir yapay zekâ puanı değildir.
+                </p>
+                <div className="geo-checks">
+                  {seoIssues.map((i, j) => (
+                    <div key={j}>
+                      {i.ok ? (
+                        <CheckCircle2 size={16} />
+                      ) : (
+                        <AlertCircle size={16} />
+                      )}
+                      <span>{i.label}</span>
+                      <small>{i.ok ? "Tamam" : "İnceleyin"}</small>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        </>
+      )}
+      {module === "settings" && (
+        <>
+          <section className="editor-section">
+            <h2>Marka ve görünüm</h2>
+            <Field
+              label="Site adı"
+              value={settings.site.name}
+              onChange={(v) =>
+                setSettings((s) => ({ ...s, site: { ...s.site, name: v } }))
+              }
+            />
+            <Field
+              label="Slogan"
+              value={settings.site.slogan}
+              onChange={(v) =>
+                setSettings((s) => ({ ...s, site: { ...s.site, slogan: v } }))
+              }
+            />
+            <ImagePicker
+              label="Logo"
+              value={settings.site.logo}
+              onChange={(v) =>
+                setSettings((s) => ({ ...s, site: { ...s.site, logo: v } }))
+              }
+            />
+            <ImagePicker
+              label="Favicon"
+              value={settings.site.favicon}
+              onChange={(v) =>
+                setSettings((s) => ({ ...s, site: { ...s.site, favicon: v } }))
+              }
+            />
+            <SelectField
+              label="Güvenli tema paleti"
+              value={settings.site.palette}
+              onChange={(v) =>
+                setSettings((s) => ({
+                  ...s,
+                  site: {
+                    ...s.site,
+                    palette: v as Settings["site"]["palette"],
+                  },
+                }))
+              }
+              options={[
+                { value: "original", label: "Orijinal · Antrasit & Bakır" },
+                { value: "graphite", label: "Grafit · Nötr" },
+                { value: "olive", label: "Zeytin · Mat vurgu" },
+              ]}
+            />
+            <Field
+              label="Footer açıklaması"
+              multiline
+              value={settings.site.footerDescription}
+              onChange={(v) =>
+                setSettings((s) => ({
+                  ...s,
+                  site: { ...s.site, footerDescription: v },
+                }))
+              }
+            />
+            <div className="admin-toggle-row">
+              <Toggle
+                label="Mobil iletişim barı"
+                value={settings.site.mobileBar}
+                onChange={(v) =>
+                  setSettings((s) => ({
+                    ...s,
+                    site: { ...s.site, mobileBar: v },
+                  }))
+                }
+              />
+              <Toggle
+                label="Ana sayfada blog"
+                value={settings.site.showBlog}
+                onChange={(v) =>
+                  setSettings((s) => ({
+                    ...s,
+                    site: { ...s.site, showBlog: v },
+                  }))
+                }
+              />
+              <Toggle
+                label="Ana sayfada projeler"
+                value={settings.site.showProjects}
+                onChange={(v) =>
+                  setSettings((s) => ({
+                    ...s,
+                    site: { ...s.site, showProjects: v },
+                  }))
+                }
+              />
+            </div>
+            <h3>Gezinme bağlantıları</h3>
+            {[
+              ["/", "Ana Sayfa"],
+              ["/hizmetler", "Hizmetler"],
+              ["/projeler", "Projeler"],
+              ["/hakkimizda", "Hakkımızda"],
+              ["/blog", "Blog"],
+              ["/iletisim", "İletişim"],
+            ].map(([path, label]) =>
+              path ? (
+                <div className="nav-setting-row" key={path}>
+                  <span>{label}</span>
+                  {(["navbar", "footer"] as const).map((key) => (
+                    <Toggle
+                      key={key}
+                      label={key === "navbar" ? "Navbar" : "Footer"}
+                      value={settings.site[key].includes(path)}
+                      onChange={(v) =>
+                        setSettings((s) => ({
+                          ...s,
+                          site: {
+                            ...s.site,
+                            [key]: v
+                              ? [...s.site[key], path]
+                              : s.site[key].filter((x) => x !== path),
+                          },
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              ) : null,
+            )}
+          </section>
+          <section className="editor-section">
+            <h2>Yerel yedekleme</h2>
+            <p className="admin-muted">
+              JSON yedeği içerikleri ve ayarları kapsar. Yüklenen görsel
+              dosyaları dahil değildir; başka tarayıcıya aktarılırsa yeniden
+              yüklenmelidir.
+            </p>
+            <div className="admin-actions">
+              <Button variant="outline" onClick={exportFile}>
+                <Download />
+                JSON Dışa Aktar
+              </Button>
+              <label className="upload-control">
+                <Upload size={16} />
+                JSON İçe Aktar
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(e) => importFile(e.target.files?.[0])}
+                />
+              </label>
+            </div>
+          </section>
+        </>
+      )}
+      <Confirm
+        open={pendingImport !== null}
+        title="Yerel veriler değiştirilsin mi?"
+        description="Mevcut içerik ve ayarlar bu yedekle değiştirilecek. Görsel dosyaları yedeğe dahil değildir."
+        onCancel={() => setPendingImport(null)}
+        onConfirm={() => {
+          if (pendingImport && update(() => pendingImport)) {
+            setSettings(pendingImport.draftSettings);
+            setInitial(JSON.stringify(pendingImport.draftSettings));
+            setPendingImport(null);
+            setMessage("Yedek geri yüklendi.");
+          }
+        }}
+      />
+      <UnsavedDialog blocker={blocker} />
+      <Dialog open={preview} onOpenChange={setPreview}>
+        <DialogContent className="preview-dialog">
+          <DialogTitle>Site önizlemesi</DialogTitle>
+          <DialogDescription>
+            Kaydedilmemiş ayarlar. Sitedeki yerel yayın sürümü değişmez.
+          </DialogDescription>
+          <PreviewProvider state={previewState}>
+            <div className="public-preview">
+              <SiteHeader />
+              <HomePage />
+              <SiteFooter />
+            </div>
+          </PreviewProvider>
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
 }
-export function MediaLibrary(){const {state,update}=useCMS();const [error,setError]=useState('');const [deleting,setDeleting]=useState<string|null>(null);async function upload(files:FileList|null){if(!files)return;try{for(const file of Array.from(files)){const m=await uploadMedia(file);update(s=>({...s,media:[...s.media,m]}));}}catch(e){setError(e instanceof Error?e.message:'Görsel yüklenemedi.');}}
- return <main className="admin-main"><div className="admin-page-heading"><div><span className="eyebrow">GÖRSEL YÖNETİMİ</span><h1>Medya Kütüphanesi</h1><p>{state.media.length} görsel · Yerel dosyalar bu tarayıcının görsel deposunda saklanır.</p></div><label className="upload-control"><Upload size={17}/>Görsel Yükle<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>upload(e.target.files)}/></label></div>{error&&<p className="admin-error" role="alert">{error}</p>}<div className="media-library-grid">{state.media.map(m=><article className="media-card" key={m.id}><MediaImage src={m.url} alt={m.alt}/><div><strong>{m.name}</strong><small>{m.local?`${(m.size/1024).toFixed(0)} KB · Yerel`:'Başlangıç görseli'}</small><Field label="Alternatif metin" value={m.alt} onChange={v=>update(s=>({...s,media:s.media.map(x=>x.id===m.id?{...x,alt:v}:x)}))}/><SelectField label="Görsel türü" value={m.kind} options={['Referans Görsel','Tamamlanmış Uygulama','Üretim Aşaması','Teknik Çizim','3D Tasarım'].map(v=>({value:v,label:v}))} onChange={v=>update(s=>({...s,media:s.media.map(x=>x.id===m.id?{...x,kind:v}:x)}))}/><Button variant="ghost" onClick={()=>setDeleting(m.id)}><Trash2/>Kaldır</Button></div></article>)}</div><Confirm open={deleting!==null} title="Görsel kaldırılsın mı?" description="İçerikte kullanılan bu görseli kaldırmak ilgili sayfada eksik görsele neden olabilir." onCancel={()=>setDeleting(null)} onConfirm={()=>{const m=state.media.find(x=>x.id===deleting);if(m&&update(s=>({...s,media:s.media.filter(x=>x.id!==m.id)}))){if(m.local)removeMedia(m.id).catch(()=>setError('Dosya depodan kaldırılamadı.'));setDeleting(null);}}}/></main>;
+export function MediaLibrary() {
+  const { state, update } = useCMS();
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
+  async function upload(files: FileList | null) {
+    if (!files) return;
+    try {
+      for (const file of Array.from(files)) {
+        const m = await uploadMedia(file);
+        update((s) => ({ ...s, media: [...s.media, m] }));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Görsel yüklenemedi.");
+    }
+  }
+  return (
+    <main className="admin-main">
+      <div className="admin-page-heading">
+        <div>
+          <span className="eyebrow">GÖRSEL YÖNETİMİ</span>
+          <h1>Medya Kütüphanesi</h1>
+          <p>
+            {state.media.length} görsel · Yerel dosyalar bu tarayıcının görsel
+            deposunda saklanır.
+          </p>
+        </div>
+        <label className="upload-control">
+          <Upload size={17} />
+          Görsel Yükle
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(e) => upload(e.target.files)}
+          />
+        </label>
+      </div>
+      {error && (
+        <p className="admin-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="media-library-grid">
+        {state.media.map((m) => (
+          <article className="media-card" key={m.id}>
+            <MediaImage src={m.url} alt={m.alt} />
+            <div>
+              <strong>{m.name}</strong>
+              <small>
+                {m.local
+                  ? `${(m.size / 1024).toFixed(0)} KB · Yerel`
+                  : "Başlangıç görseli"}
+              </small>
+              <Field
+                label="Alternatif metin"
+                value={m.alt}
+                onChange={(v) =>
+                  update((s) => ({
+                    ...s,
+                    media: s.media.map((x) =>
+                      x.id === m.id ? { ...x, alt: v } : x,
+                    ),
+                  }))
+                }
+              />
+              <SelectField
+                label="Görsel türü"
+                value={m.kind}
+                options={[
+                  "Referans Görsel",
+                  "Tamamlanmış Uygulama",
+                  "Üretim Aşaması",
+                  "Teknik Çizim",
+                  "3D Tasarım",
+                ].map((v) => ({ value: v, label: v }))}
+                onChange={(v) =>
+                  update((s) => ({
+                    ...s,
+                    media: s.media.map((x) =>
+                      x.id === m.id ? { ...x, kind: v } : x,
+                    ),
+                  }))
+                }
+              />
+              <Button variant="ghost" onClick={() => setDeleting(m.id)}>
+                <Trash2 />
+                Kaldır
+              </Button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <Confirm
+        open={deleting !== null}
+        title="Görsel kaldırılsın mı?"
+        description="İçerikte kullanılan bu görseli kaldırmak ilgili sayfada eksik görsele neden olabilir."
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => {
+          const m = state.media.find((x) => x.id === deleting);
+          if (
+            m &&
+            update((s) => ({
+              ...s,
+              media: s.media.filter((x) => x.id !== m.id),
+            }))
+          ) {
+            if (m.local)
+              removeMedia(m.id).catch(() =>
+                setError("Dosya depodan kaldırılamadı."),
+              );
+            setDeleting(null);
+          }
+        }}
+      />
+    </main>
+  );
 }

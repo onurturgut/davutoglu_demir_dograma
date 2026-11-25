@@ -1,16 +1,271 @@
-import { useState } from 'react';
-import { ImagePlus,Trash2,ArrowUp,ArrowDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog,DialogContent,DialogTitle,DialogDescription } from '@/components/ui/dialog';
-import { useCMS } from '@/lib/cms/store';
-import { uploadMedia } from '@/lib/cms/media';
-import { MediaImage } from './media-image';
-export function Field({label,value,onChange,multiline=false,type='text',hint}: {label:string;value:string;onChange:(v:string)=>void;multiline?:boolean;type?:string;hint?:string}) { return <label className="admin-field"><span>{label}</span>{multiline?<textarea aria-label={label} value={value} onChange={e=>onChange(e.target.value)} rows={4}/>:<input aria-label={label} type={type} value={value} onChange={e=>onChange(e.target.value)}/>} {hint&&<small>{hint}</small>}</label>; }
-export function Toggle({label,value,onChange}:{label:string;value:boolean;onChange:(v:boolean)=>void}) {return <label className="admin-toggle"><input type="checkbox" checked={value} onChange={e=>onChange(e.target.checked)}/><span>{label}</span></label>;}
-export function SelectField({label,value,onChange,options}:{label:string;value:string;onChange:(value:string)=>void;options:{value:string;label:string}[]}) {return <label className="admin-field"><span>{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;}
-export function ImagePicker({value,onChange,label='Kapak görseli'}:{value:string;onChange:(v:string)=>void;label?:string}) {const {state,update}=useCMS();const [open,setOpen]=useState(false);const [error,setError]=useState('');async function load(files:FileList|null){if(!files)return;try{for(const file of Array.from(files)){const media=await uploadMedia(file);if(update(s=>({...s,media:[...s.media,media]})))onChange(media.url);}}catch(e){setError(e instanceof Error?e.message:'Yükleme başarısız.');}}
- return <div className="image-picker"><span className="field-label">{label}</span><div className="image-picker-current">{value&&<MediaImage src={value} alt="Seçilen görsel"/>}<Button type="button" variant="outline" onClick={()=>setOpen(true)}><ImagePlus/>Görsel Seç</Button>{value&&<Button type="button" size="icon" variant="ghost" aria-label="Görsel seçimini kaldır" onClick={()=>onChange('')}><Trash2/></Button>}</div><Dialog open={open} onOpenChange={setOpen}><DialogContent className="admin-dialog"><DialogTitle>Medya kütüphanesi</DialogTitle><DialogDescription>Görseller yalnızca bu tarayıcıda saklanır. En fazla 8 MB.</DialogDescription><label className="upload-control">Görsel yükle<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>load(e.target.files)}/></label>{error&&<p role="alert" className="admin-error">{error}</p>}<div className="picker-grid">{state.media.map(m=><Button key={m.id} variant="ghost" className="picker-item" onClick={()=>{onChange(m.url);setOpen(false);}}><MediaImage src={m.url} alt={m.alt}/><span>{m.name}</span></Button>)}</div></DialogContent></Dialog></div>; }
-export function StringList({label,values,onChange}:{label:string;values:string[];onChange:(values:string[])=>void}) {return <Field label={label} value={values.join('\n')} onChange={v=>onChange(v.split('\n'))} multiline hint="Her satıra bir değer yazın."/>;}
-export function MoveButtons({index,count,onMove}:{index:number;count:number;onMove:(index:number,target:number)=>void}){return <span className="move-buttons"><Button type="button" variant="ghost" size="icon" disabled={index===0} aria-label="Yukarı taşı" onClick={()=>onMove(index,index-1)}><ArrowUp/></Button><Button type="button" variant="ghost" size="icon" disabled={index===count-1} aria-label="Aşağı taşı" onClick={()=>onMove(index,index+1)}><ArrowDown/></Button></span>;}
-export function reorder<T>(items:T[],from:number,to:number) { const result=[...items];const item=result.splice(from,1)[0];if(item!==undefined)result.splice(to,0,item);return result; }
-export function Confirm({open,title,description,onCancel,onConfirm}:{open:boolean;title:string;description:string;onCancel:()=>void;onConfirm:()=>void}) {return <Dialog open={open} onOpenChange={v=>{if(!v)onCancel();}}><DialogContent><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription><div className="admin-actions"><Button variant="outline" onClick={onCancel}>Vazgeç</Button><Button onClick={onConfirm}>Onayla</Button></div></DialogContent></Dialog>;}
+"use client";
+import { useState } from "react";
+import { ImagePlus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useCMS } from "@/lib/cms/store";
+import { uploadMedia } from "@/lib/cms/media";
+import { MediaImage } from "./media-image";
+export function Field({
+  label,
+  value,
+  onChange,
+  multiline = false,
+  type = "text",
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  multiline?: boolean;
+  type?: string;
+  hint?: string;
+}) {
+  return (
+    <label className="admin-field">
+      <span>{label}</span>
+      {multiline ? (
+        <textarea
+          aria-label={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+        />
+      ) : (
+        <input
+          aria-label={label}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}{" "}
+      {hint && <small>{hint}</small>}
+    </label>
+  );
+}
+export function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="admin-toggle">
+      <input
+        type="checkbox"
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+export function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="admin-field">
+      <span>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+export function ImagePicker({
+  value,
+  onChange,
+  label = "Kapak görseli",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label?: string;
+}) {
+  const { state, update } = useCMS();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  async function load(files: FileList | null) {
+    if (!files) return;
+    try {
+      for (const file of Array.from(files)) {
+        const media = await uploadMedia(file);
+        if (update((s) => ({ ...s, media: [...s.media, media] })))
+          onChange(media.url);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yükleme başarısız.");
+    }
+  }
+  return (
+    <div className="image-picker">
+      <span className="field-label">{label}</span>
+      <div className="image-picker-current">
+        {value && <MediaImage src={value} alt="Seçilen görsel" />}
+        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+          <ImagePlus />
+          Görsel Seç
+        </Button>
+        {value && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Görsel seçimini kaldır"
+            onClick={() => onChange("")}
+          >
+            <Trash2 />
+          </Button>
+        )}
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="admin-dialog">
+          <DialogTitle>Medya kütüphanesi</DialogTitle>
+          <DialogDescription>
+            Görseller yalnızca bu tarayıcıda saklanır. En fazla 8 MB.
+          </DialogDescription>
+          <label className="upload-control">
+            Görsel yükle
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={(e) => load(e.target.files)}
+            />
+          </label>
+          {error && (
+            <p role="alert" className="admin-error">
+              {error}
+            </p>
+          )}
+          <div className="picker-grid">
+            {state.media.map((m) => (
+              <Button
+                key={m.id}
+                variant="ghost"
+                className="picker-item"
+                onClick={() => {
+                  onChange(m.url);
+                  setOpen(false);
+                }}
+              >
+                <MediaImage src={m.url} alt={m.alt} />
+                <span>{m.name}</span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+export function StringList({
+  label,
+  values,
+  onChange,
+}: {
+  label: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <Field
+      label={label}
+      value={values.join("\n")}
+      onChange={(v) => onChange(v.split("\n"))}
+      multiline
+      hint="Her satıra bir değer yazın."
+    />
+  );
+}
+export function MoveButtons({
+  index,
+  count,
+  onMove,
+}: {
+  index: number;
+  count: number;
+  onMove: (index: number, target: number) => void;
+}) {
+  return (
+    <span className="move-buttons">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        disabled={index === 0}
+        aria-label="Yukarı taşı"
+        onClick={() => onMove(index, index - 1)}
+      >
+        <ArrowUp />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        disabled={index === count - 1}
+        aria-label="Aşağı taşı"
+        onClick={() => onMove(index, index + 1)}
+      >
+        <ArrowDown />
+      </Button>
+    </span>
+  );
+}
+export function reorder<T>(items: T[], from: number, to: number) {
+  const result = [...items];
+  const item = result.splice(from, 1)[0];
+  if (item !== undefined) result.splice(to, 0, item);
+  return result;
+}
+export function Confirm({
+  open,
+  title,
+  description,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onCancel();
+      }}
+    >
+      <DialogContent>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+        <div className="admin-actions">
+          <Button variant="outline" onClick={onCancel}>
+            Vazgeç
+          </Button>
+          <Button onClick={onConfirm}>Onayla</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
