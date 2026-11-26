@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { readMedia } from "@/lib/cms/media";
 import { safeUrl } from "@/lib/cms/model";
+import { publicMediaUrl } from "@/lib/media-url";
 
 type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> & {
   src?: string | undefined;
@@ -23,7 +24,9 @@ export function MediaImage({ src = "", alt, ...props }: Props) {
       active = false;
     };
   }, [src]);
-  const url = src.startsWith("media:") ? resolved : safeUrl(src, true);
+  const url = src.startsWith("media:")
+    ? resolved
+    : safeUrl(publicMediaUrl(src), true);
   return url ? (
     <img {...props} src={url} alt={alt || ""} />
   ) : (

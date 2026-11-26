@@ -16,6 +16,10 @@ import {
   type ContentType,
   publishedEntries,
 } from "./model";
+import {
+  articles as seededArticles,
+  services as seededServices,
+} from "@/data/content";
 // Keep the previous browser-local snapshot recoverable while loading the
 // refreshed real-project portfolio as the new default dataset.
 const KEY = "davutoglu-cms-v2";
@@ -50,6 +54,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
         return stateSchema.parse(payload);
       })
       .then((value) => {
+        localStorage.setItem(KEY, JSON.stringify(value));
         latest.current = value;
         setState(value);
       })
@@ -142,20 +147,32 @@ export function useEntries(type: ContentType): Entry[] {
 export function usePublicData() {
   const state = usePublicState();
   return {
-    services: publishedEntries(state, "services").map((s) => ({
-      ...s,
-      faqs: [
-        ...s.faqs,
-        ...state.publishedSettings.faqs
-          .filter((f) => f.active && f.serviceSlug === s.slug)
-          .sort((a, b) => a.order - b.order),
-      ].filter(
-        (f, i, arr) => arr.findIndex((x) => x.question === f.question) === i,
-      ),
-    })),
+    services: publishedEntries(state, "services").map((s) => {
+      const seeded = seededServices.find((item) => item.slug === s.slug);
+      const hasSeededMedia = Boolean(seeded?.gallery?.length);
+      return {
+        ...s,
+        image: hasSeededMedia ? seeded?.image || s.image : s.image,
+        gallery: hasSeededMedia ? seeded?.gallery || [] : s.gallery,
+        video: seeded?.video || s.video,
+        faqs: [
+          ...s.faqs,
+          ...state.publishedSettings.faqs
+            .filter((f) => f.active && f.serviceSlug === s.slug)
+            .sort((a, b) => a.order - b.order),
+        ].filter(
+          (f, i, arr) => arr.findIndex((x) => x.question === f.question) === i,
+        ),
+      };
+    }),
     projects: publishedEntries(state, "projects"),
     articles: publishedEntries(state, "blog").map((a) => ({
       ...a,
+      image:
+        a.slug === "demir-celik-korkuluk-farklari"
+          ? seededArticles.find((item) => item.slug === a.slug)?.image ||
+            a.image
+          : a.image,
       excerpt: a.description,
     })),
   };

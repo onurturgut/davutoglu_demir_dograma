@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { articles, services, projects, images } from "@/data/content";
 import { businessConfig, whatsappUrl } from "@/data/business";
+import { publicMediaUrl } from "@/lib/media-url";
 export const richNodeSchema: z.ZodType<RichNode> = z.lazy(() =>
   z.object({
     type: z.string(),
@@ -36,6 +37,7 @@ export const entrySchema = z.object({
   image: z.string(),
   alt: z.string(),
   gallery: z.array(z.object({ url: z.string(), alt: z.string() })),
+  video: z.string().default(""),
   uses: z.array(z.string()),
   features: z.array(z.string()),
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
@@ -188,6 +190,7 @@ export function blankEntry(type: ContentType, id: string): Entry {
     image: "",
     alt: "",
     gallery: [],
+    video: "",
     uses: [],
     features: [],
     faqs: [],
@@ -387,15 +390,15 @@ export function createSeed(): CMSState {
       description: businessConfig.description,
       siteUrl: businessConfig.websiteUrl,
       ogImage: "",
-      favicon: "/brand/davutoglu-icon.png",
+      favicon: publicMediaUrl("/brand/davutoglu-icon.png"),
       region: "Elazığ",
       pages: {},
     },
     site: {
       name: businessConfig.businessName,
       slogan: "DEMİR DOĞRAMA",
-      logo: "/brand/davutoglu-logo.png",
-      favicon: "/brand/davutoglu-icon.png",
+      logo: publicMediaUrl("/brand/davutoglu-logo.png"),
+      favicon: publicMediaUrl("/brand/davutoglu-icon.png"),
       palette: "original",
       footerDescription:
         "İhtiyaca göre şekillenen metal.\nÖzenle düşünülen detaylar.",

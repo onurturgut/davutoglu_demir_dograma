@@ -1,10 +1,8 @@
-import stairsAsset from "@/assets/metal-stairs.jpg";
-const assetPath = (asset: { src: string } | string) =>
-  typeof asset === "string" ? asset : asset.src;
+import { publicMediaUrl } from "@/lib/media-url";
 const gate = "/projects/davutoglu/surgulu-bahce-kapisi.webp";
-const stairs = assetPath(stairsAsset);
+const stairs = publicMediaUrl("/assets/metal-stairs.jpg");
 const storage = "/projects/davutoglu/metal-odunluk.webp";
-const workshop = "/projects/davutoglu/atolye-imalat.webp";
+const workshop = "/projects/davutoglu/atolye-dis-cephe.webp";
 export const images = { gate, stairs, storage, workshop };
 export type FAQ = { question: string; answer: string };
 export type Service = {
@@ -16,6 +14,8 @@ export type Service = {
   content: string;
   uses: string[];
   faqs: FAQ[];
+  gallery?: { url: string; alt: string }[];
+  video?: string;
 };
 export const services: Service[] = [
   {
@@ -23,6 +23,12 @@ export const services: Service[] = [
     title: "Demir ve Bahçe Kapıları",
     description: "Mekânınıza uyum sağlayan, özel ölçülü kapı çözümleri.",
     image: gate,
+    gallery: [
+      {
+        url: "/services/bahce-kapisi/dekoratif-metal-kapi-paneli.webp",
+        alt: "Lazer kesim desenli dekoratif metal bahçe kapısı paneli",
+      },
+    ],
     category: "Kapılar",
     content:
       "Bahçe, bina ve garaj girişleri için metal kapı seçeneklerini birlikte değerlendirebiliriz. Açılış yönü, net geçiş genişliği ve çevredeki mimari, tasarımın başlangıç noktalarıdır. Dış mekânda yüzey koruması ve suyun birikmesini önleyen detaylar önemlidir.",
@@ -76,7 +82,29 @@ export const services: Service[] = [
     title: "Korkuluk Sistemleri",
     description:
       "Balkon, merdiven ve teraslarda mimariyle bütünleşen detaylar.",
-    image: stairs,
+    image: "/services/korkuluk-sistemleri/modern-balkon-korkulugu.webp",
+    gallery: [
+      {
+        url: "/services/korkuluk-sistemleri/metal-merdiven-korkulugu.webp",
+        alt: "Dış mekân metal merdiven korkuluğu",
+      },
+      {
+        url: "/services/korkuluk-sistemleri/ferforje-korkuluk-modeli.webp",
+        alt: "Sivri uçlu klasik ferforje korkuluk modeli",
+      },
+      {
+        url: "/services/korkuluk-sistemleri/ferforje-model-secenekleri.webp",
+        alt: "Farklı ferforje korkuluk model seçenekleri",
+      },
+      {
+        url: "/services/korkuluk-sistemleri/ferforje-bahce-korkulugu.webp",
+        alt: "Bahçe çevresinde uygulanan ferforje korkuluk ve kapı",
+      },
+      {
+        url: "/services/korkuluk-sistemleri/dekoratif-ferforje-korkuluk.webp",
+        alt: "Dekoratif kemerli ferforje bahçe korkuluğu",
+      },
+    ],
     category: "Korkuluklar",
     content:
       "Korkuluk tasarımında görünüm kadar bağlantı zemini ve kullanım güvenliği de önemlidir. Balkon, teras ve merdiven için dolgu aralıkları, yükseklik ve bağlantı yöntemi ayrı değerlendirilir. Çocukların kullanacağı alanlarda tırmanmayı kolaylaştıran yatay elemanlardan kaçınmak gerekebilir.",
@@ -98,7 +126,17 @@ export const services: Service[] = [
     title: "Çardak ve Metal Çatı İşleri",
     description:
       "Dış mekânlarınıza uygun metal taşıyıcı ve üst örtü çözümleri.",
-    image: gate,
+    image: "/services/metal-cati/modern-metal-cardak.webp",
+    gallery: [
+      {
+        url: "/services/metal-cati/bahce-metal-pergola.webp",
+        alt: "Bahçede oturma alanını örten metal pergola uygulaması",
+      },
+      {
+        url: "/services/metal-cati/metal-cardak-olcu-secenekleri.webp",
+        alt: "Farklı ölçülerde metal çardak seçenekleri",
+      },
+    ],
     category: "Dış Mekân",
     content:
       "Bahçe çardağı ve metal çatı işlerinde açıklık, zemin, yağış ve rüzgâr koşulları tasarımı etkiler. Taşıyıcı sistem ile üst örtü malzemesi birlikte düşünülmelidir. Yapısal hesap ve gerekli izinler uygulama öncesinde uzmanlarca değerlendirilmelidir.",
@@ -115,7 +153,31 @@ export const services: Service[] = [
     slug: "endustriyel-metal-urunler",
     title: "Endüstriyel Metal Ürünler",
     description: "Atölye ve işletmelere özel raf, tezgâh ve servis arabaları.",
-    image: storage,
+    image:
+      "/services/endustriyel-metal-urunler/tekerlekli-metal-servis-arabasi.webp",
+    video: "/services/endustriyel-metal-urunler/endustriyel-metal-urunler.mp4",
+    gallery: [
+      {
+        url: "/services/endustriyel-metal-urunler/metal-masa-sandalye-seti.webp",
+        alt: "Özel imalat metal masa ve sandalye seti",
+      },
+      {
+        url: "/services/endustriyel-metal-urunler/klima-dis-unite-kafesi.webp",
+        alt: "Dekoratif metal klima dış ünite koruma kafesi",
+      },
+      {
+        url: "/services/endustriyel-metal-urunler/dekoratif-metal-calisma-masasi.webp",
+        alt: "Lazer kesim desenli özel metal çalışma masası",
+      },
+      {
+        url: "/services/endustriyel-metal-urunler/dekoratif-metal-raf.webp",
+        alt: "Ahşap raflı dekoratif metal raf sistemi",
+      },
+      {
+        url: "/services/endustriyel-metal-urunler/ozel-metal-dolap-kasasi.webp",
+        alt: "Kaynaklı özel metal dolap kasası imalatı",
+      },
+    ],
     category: "Endüstriyel",
     content:
       "Raf, çalışma tezgâhı ve metal servis arabası tasarımında kullanım yoğunluğu, yerleşim ve taşınacak yükler belirleyicidir. Bölme ölçüleri, tezgâh yüksekliği ve tekerlek ihtiyacı çalışma alanınıza göre değerlendirilir. Taşıma kapasitesi hesap veya doğrulama olmadan varsayılmamalıdır.",
@@ -366,7 +428,7 @@ export const articles: Article[] = [
     category: "Korkuluklar",
     excerpt:
       "Malzeme adlandırmaları, yüzey seçenekleri ve kullanım koşulları üzerine.",
-    image: stairs,
+    image: "/services/korkuluk-sistemleri/dekoratif-ferforje-korkuluk.webp",
     serviceSlug: "korkuluk-sistemleri",
     sections: [
       {

@@ -1,6 +1,6 @@
 "use client";
 import { useHomeScroll } from "@/hooks/use-home-scroll";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "@/components/navigation";
 import {
   ArrowUpRight,
@@ -20,13 +20,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   images,
   type Service,
   type Project,
@@ -40,6 +33,7 @@ import {
 import { MediaImage } from "@/components/admin/media-image";
 import { RichContent } from "@/components/admin/rich-text";
 import type { Entry } from "@/lib/cms/model";
+import { publicMediaUrl } from "@/lib/media-url";
 import {
   SectionTitle,
   PageIntro,
@@ -49,7 +43,62 @@ import {
   FAQs,
 } from "./content";
 import { ContactBand, ContactButtons } from "./shell";
+
+const marketingMessages = [
+  { lead: "ELAZIĞ'DA", highlight: "ÜCRETSİZ KEŞİF" },
+  { lead: "ÖZEL ÖLÇÜ", highlight: "DEMİR DOĞRAMA" },
+  { lead: "BAHÇE KAPISI VE", highlight: "KORKULUK SİSTEMLERİ" },
+  { lead: "ÇARDAK VE", highlight: "METAL ÇATI İŞLERİ" },
+  { lead: "ATÖLYEDEN", highlight: "ÖZEL METAL İMALAT" },
+  { lead: "ÖZENLİ İŞÇİLİK", highlight: "ZAMANINDA TESLİMAT" },
+];
+
+function MarketingTicker() {
+  return (
+    <section
+      className="marketing-ticker"
+      aria-label="Davutoğlu Demir Doğrama hizmetleri"
+    >
+      <h2 className="sr-only">
+        Elazığ demir doğrama ve metal imalat hizmetleri
+      </h2>
+      <ul className="sr-only">
+        {marketingMessages.map((message) => (
+          <li key={`${message.lead}-${message.highlight}`}>
+            {message.lead} {message.highlight}
+          </li>
+        ))}
+      </ul>
+      <div className="marketing-ticker-track" aria-hidden="true">
+        {[0, 1].map((copy) => (
+          <div className="marketing-ticker-group" key={copy}>
+            {marketingMessages.map((message) => (
+              <span
+                className="marketing-ticker-message"
+                key={`${copy}-${message.lead}-${message.highlight}`}
+              >
+                <span>{message.lead}</span>
+                <strong>{message.highlight}</strong>
+                <i>✦</i>
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
+  const showcaseVideoRef = useRef<HTMLVideoElement>(null);
+  const playShowcaseVideo = () => {
+    const video = showcaseVideoRef.current;
+    if (!video) return;
+    video.muted = false;
+    video.currentTime = 0;
+    video.scrollIntoView({ behavior: "smooth", block: "center" });
+    void video.play();
+  };
   const { services, projects, articles } = usePublicData();
   const businessConfig = useBusiness();
   const whatsappUrl = businessConfig.whatsappUrl;
@@ -61,76 +110,121 @@ export function HomePage() {
     items.filter((item) => section(id)?.selected.includes(item.slug));
   const blocks: Record<string, React.ReactNode> = {
     hero: (
-      <section className="home-hero">
-        <div className="hero-photo">
-          <video
-            className="hero-video"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            aria-hidden="true"
-          >
-            <source
-              src="/videos/davutoglu-promo-mobile.mp4"
-              type="video/mp4"
-              media="(max-width: 600px)"
+      <>
+        <section className="home-hero">
+          <div className="hero-photo">
+            <img
+              src={publicMediaUrl("/brand/davutoglu-hero-background.png")}
+              alt=""
+              aria-hidden="true"
             />
-            <source
-              src="/videos/davutoglu-promo-desktop.mp4"
-              type="video/mp4"
-            />
-          </video>
-        </div>
-        <div className="container hero-content">
-          <span className="hero-location">
-            <MapPin size={14} />
-            {hero.label}
-          </span>
-          <h1>{hero.title}</h1>
-          <p>{hero.description}</p>
-          <div className="button-row">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="lg" variant="secondary">
-                  <PlayCircle />
-                  Tanıtım Filmini İzle
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="promo-dialog">
-                <DialogTitle className="sr-only">
-                  Davutoğlu Demir Doğrama Tanıtım Filmi
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  Davutoğlu Demir Doğrama üretim ve uygulama çalışmalarını
-                  tanıtan video.
-                </DialogDescription>
-                <video controls autoPlay playsInline preload="metadata">
-                  <source
-                    src="/videos/davutoglu-tanitim-filmi.mp4"
-                    type="video/mp4"
-                  />
-                </video>
-              </DialogContent>
-            </Dialog>
-            <Button asChild size="lg" variant="hero">
-              <a href={hero.secondaryHref}>
-                {hero.secondaryText}
-                <ArrowRight />
-              </a>
-            </Button>
+            <video
+              className="hero-video hero-video-mobile"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            >
+              <source
+                src="/videos/davutoglu-promo-mobile.mp4"
+                type="video/mp4"
+              />
+            </video>
           </div>
-          <span className="hero-brand">
-            <img src="/brand/davutoglu-logo.png" alt="" aria-hidden="true" />
-            <span>DAVUTOĞLU DEMİR DOĞRAMA</span>
-          </span>
-        </div>
-        <div className="hero-bottom">
-          <span>İHTİYACA ÖZEL ÜRETİM. ÖZENLİ METAL İŞÇİLİĞİ.</span>
-          <span>Temsilî tanıtım videosu</span>
-        </div>
-      </section>
+          <div className="container hero-content">
+            <span className="hero-location">
+              <MapPin size={14} />
+              {hero.label}
+            </span>
+            <h1>{hero.title}</h1>
+            <p>{hero.description}</p>
+            <div className="button-row">
+              <Button size="lg" variant="secondary" onClick={playShowcaseVideo}>
+                <PlayCircle />
+                Tanıtım Filmini İzle
+              </Button>
+              <Button asChild size="lg" variant="hero">
+                <a href={hero.secondaryHref}>
+                  {hero.secondaryText}
+                  <ArrowRight />
+                </a>
+              </Button>
+            </div>
+            <span className="hero-brand">
+              <img
+                src={publicMediaUrl("/brand/davutoglu-logo.png")}
+                alt=""
+                aria-hidden="true"
+              />
+              <span>DAVUTOĞLU DEMİR DOĞRAMA</span>
+            </span>
+          </div>
+          <div className="hero-bottom">
+            <span>İHTİYACA ÖZEL ÜRETİM. ÖZENLİ METAL İŞÇİLİĞİ.</span>
+            <span>Temsilî tanıtım videosu</span>
+          </div>
+        </section>
+        <MarketingTicker />
+        <section className="showcase-section" aria-labelledby="showcase-title">
+          <div className="container showcase-grid">
+            <div className="showcase-media-column">
+              <div className="showcase-video-stage">
+                <div className="showcase-video-frame">
+                  <video
+                    ref={showcaseVideoRef}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    controls
+                    preload="metadata"
+                  >
+                    <source
+                      src="/videos/davutogludemir2.mp4"
+                      type="video/mp4"
+                    />
+                  </video>
+                </div>
+              </div>
+              <div className="showcase-actions">
+                <button
+                  type="button"
+                  className="showcase-button showcase-button-primary"
+                  onClick={playShowcaseVideo}
+                >
+                  <PlayCircle aria-hidden="true" />
+                  Tanıtımı İzle
+                </button>
+                <Link
+                  className="showcase-button showcase-button-secondary"
+                  to="/iletisim"
+                >
+                  İletişime Geç
+                  <ArrowUpRight aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="showcase-copy">
+              <span className="showcase-kicker">
+                METALDE USTALIK, TASARIMDA KARAKTER
+              </span>
+              <div className="showcase-logo-motion" aria-hidden="true">
+                <img src={publicMediaUrl("/brand/davutoglu-logo.png")} alt="" />
+              </div>
+              <h2 id="showcase-title">
+                Demiri hayalinizdeki <em>forma</em> dönüştürüyoruz.
+              </h2>
+              <p>
+                Tasarımdan imalata, her ayrıntıda güçlü işçilik ve zamansız bir
+                duruş.
+              </p>
+            </div>
+          </div>
+        </section>
+      </>
     ),
     services: (
       <section className="section container">
@@ -258,12 +352,16 @@ export function HomePage() {
 function AboutSection() {
   const settings = usePublishedSettings();
   const about = settings.sections.find((s) => s.id === "about");
+  const aboutImage =
+    !about?.image || about.image === "/projects/davutoglu/atolye-imalat.webp"
+      ? images.workshop
+      : about.image;
   return (
     <section className="section container about-section">
       <div className="about-image">
         <MediaImage
-          src={about?.image || images.workshop}
-          alt="Davutoğlu Demir Doğrama atölyesinde metal imalat çalışmaları"
+          src={aboutImage}
+          alt="Davutoğlu Demir Doğrama atölyesinin dış cephe görünümü"
           width={1536}
           height={1024}
           loading="lazy"
@@ -507,7 +605,7 @@ export function ContactPage() {
         <div className="contact-photo">
           <MediaImage
             src={images.workshop}
-            alt="Davutoğlu Demir Doğrama atölyesinde metal işçiliği"
+            alt="Davutoğlu Demir Doğrama atölyesinin dış cephe görünümü"
             width={1536}
             height={1024}
           />
@@ -519,6 +617,11 @@ export function ContactPage() {
 }
 export function ServiceDetail({ item }: { item: Service }) {
   const { projects } = usePublicData();
+  const serviceGallery = [
+    item.image,
+    ...(item.gallery?.map((galleryItem) => galleryItem.url) || []),
+  ];
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   return (
     <main>
       <PageIntro
@@ -561,6 +664,54 @@ export function ServiceDetail({ item }: { item: Service }) {
           </Link>
         </aside>
       </div>
+      {(serviceGallery.length > 1 || item.video) && (
+        <section className="section container service-media-section">
+          <SectionTitle
+            eyebrow="UYGULAMALAR"
+            title={`${item.title} örnekleri`}
+            description="Farklı kullanım alanları ve üretim seçeneklerinden örnekler."
+          />
+          {item.video && (
+            <div className="service-video">
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                poster={item.image}
+                aria-label={`${item.title} uygulama videosu`}
+              >
+                <source src={item.video} type="video/mp4" />
+                Tarayıcınız video oynatmayı desteklemiyor.
+              </video>
+            </div>
+          )}
+          <div className="service-gallery">
+            {serviceGallery.map((image, index) => (
+              <button
+                type="button"
+                className="service-gallery-item"
+                key={image}
+                onClick={() => setLightboxIndex(index)}
+                aria-label={`${item.title} galeri görselini büyüt`}
+              >
+                <MediaImage
+                  src={image}
+                  alt={
+                    index === 0
+                      ? `${item.title} hizmet görseli`
+                      : item.gallery?.[index - 1]?.alt ||
+                        `${item.title} uygulama örneği`
+                  }
+                  width={1200}
+                  height={900}
+                  loading="lazy"
+                />
+                <span>Görseli büyüt</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="section container">
         <SectionTitle eyebrow="İLGİLİ SEÇKİ" title="Tasarım fikirleri" />
         <div className="project-grid">
@@ -572,6 +723,14 @@ export function ServiceDetail({ item }: { item: Service }) {
         </div>
       </section>
       <ContactBand />
+      {lightboxIndex !== null && (
+        <Lightbox
+          gallery={serviceGallery}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onChange={setLightboxIndex}
+        />
+      )}
     </main>
   );
 }

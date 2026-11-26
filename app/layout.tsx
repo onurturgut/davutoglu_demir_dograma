@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "@/styles.css";
 import { Providers } from "./providers";
 import { LocalHead } from "@/components/admin/local-head";
+import { publicMediaUrl } from "@/lib/media-url";
 
 export const metadata: Metadata = {
   title: {
@@ -11,8 +12,8 @@ export const metadata: Metadata = {
   },
   description: "Elazığ demir doğrama ve özel metal imalat çözümleri.",
   icons: {
-    icon: "/brand/davutoglu-icon.png",
-    apple: "/brand/davutoglu-icon.png",
+    icon: publicMediaUrl("/brand/davutoglu-icon.png"),
+    apple: publicMediaUrl("/brand/davutoglu-icon.png"),
   },
 };
 

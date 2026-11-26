@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { usePublicState } from "@/lib/cms/store";
 import { safeUrl } from "@/lib/cms/model";
+import { publicMediaUrl } from "@/lib/media-url";
 export function LocalHead() {
   const state = usePublicState();
   const path = usePathname();
@@ -48,9 +49,11 @@ export function LocalHead() {
       meta('meta[property="og:description"]', description);
     }
     const favicon = safeUrl(
-      settings.site.favicon ||
-        settings.seo.favicon ||
-        "/brand/davutoglu-icon.png",
+      publicMediaUrl(
+        settings.site.favicon ||
+          settings.seo.favicon ||
+          "/brand/davutoglu-icon.png",
+      ),
       true,
     );
     if (favicon) {

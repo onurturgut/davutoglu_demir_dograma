@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { useBusiness, usePublishedSettings } from "@/lib/cms/store";
 import { safeUrl } from "@/lib/cms/model";
 import { useEffect } from "react";
+import { FaWhatsapp } from "react-icons/fa";
+import { publicMediaUrl } from "@/lib/media-url";
 const navigation = [
   { to: "/", label: "Ana Sayfa" },
   { to: "/hizmetler", label: "Hizmetler" },
@@ -32,7 +34,7 @@ export function Brand() {
     >
       <img
         className="brand-logo"
-        src="/brand/davutoglu-logo.png"
+        src={publicMediaUrl("/brand/davutoglu-logo.png")}
         alt=""
         aria-hidden="true"
       />
@@ -213,6 +215,17 @@ export function SiteFooter() {
           <span>© {new Date().getFullYear()} Davutoğlu Demir Doğrama</span>
           <span>Demir Doğrama · Metal İmalat · Özel Tasarım</span>
         </div>
+        <div className="footer-credit">
+          <span>Bu site </span>
+          <a
+            href="https://www.onurturgut.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Aisurix.web
+          </a>
+          <span> tarafından tasarlanmıştır.</span>
+        </div>
       </footer>
       <a
         className="floating-contact"
@@ -221,7 +234,7 @@ export function SiteFooter() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        <MessageCircle size={23} />
+        <FaWhatsapp size={26} aria-hidden="true" />
       </a>
       {settings.site.mobileBar && (
         <div className="mobile-contact">
@@ -231,6 +244,11 @@ export function SiteFooter() {
             .map((l) => (
               <a
                 key={l.id}
+                className={
+                  l.platform === "WhatsApp"
+                    ? "mobile-contact-whatsapp"
+                    : undefined
+                }
                 href={safeUrl(l.url)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -238,7 +256,14 @@ export function SiteFooter() {
                 {l.platform === "Telefon" ? (
                   <Phone size={19} />
                 ) : l.platform === "Instagram" ? (
-                  <Instagram size={19} />
+                  <img
+                    className="mobile-instagram-icon"
+                    src={publicMediaUrl("/brand/instagram-mobile-icon.webp")}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                ) : l.platform === "WhatsApp" ? (
+                  <FaWhatsapp size={21} aria-hidden="true" />
                 ) : (
                   <MessageCircle size={19} />
                 )}{" "}

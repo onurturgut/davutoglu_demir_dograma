@@ -36,7 +36,7 @@ export function useHomeScroll(revision: string) {
             }
             root
               .querySelectorAll(
-                ".section-heading,.about-section>div:last-child,.contact-band-inner>div",
+                ".section-heading,.about-section>div:last-child,.contact-band-inner>div,.showcase-media-column,.showcase-copy",
               )
               .forEach((element) =>
                 gsap.from(element, {

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { images } from "@/data/content";
+import { publicMediaUrl } from "@/lib/media-url";
 
 export function AdminLogin({ onPreview }: { onPreview: () => void }) {
   const [visible, setVisible] = useState(false);
@@ -34,7 +35,11 @@ export function AdminLogin({ onPreview }: { onPreview: () => void }) {
           alt="Metal atölyesinin temsilî konsept görseli"
         />
         <div className="admin-login-brand">
-          <img src="/brand/davutoglu-logo.png" alt="" aria-hidden="true" />
+          <img
+            src={publicMediaUrl("/brand/davutoglu-logo.png")}
+            alt=""
+            aria-hidden="true"
+          />
           <strong>
             DAVUTOĞLU<small>DEMİR DOĞRAMA</small>
           </strong>

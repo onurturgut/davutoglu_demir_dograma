@@ -1,5 +1,6 @@
 "use client";
 import { Link } from "@/components/navigation";
+import { publicMediaUrl } from "@/lib/media-url";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import {
@@ -58,7 +59,11 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     >
       <aside className="admin-sidebar">
         <Link to="/admin" className="admin-brand">
-          <img src="/brand/davutoglu-logo.png" alt="" aria-hidden="true" />
+          <img
+            src={publicMediaUrl("/brand/davutoglu-logo.png")}
+            alt=""
+            aria-hidden="true"
+          />
           <div>
             <strong>DAVUTOĞLU</strong>
             <small>İÇERİK YÖNETİMİ</small>
