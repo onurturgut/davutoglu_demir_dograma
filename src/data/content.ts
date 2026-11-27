@@ -3,6 +3,8 @@ const gate = "/projects/davutoglu/surgulu-bahce-kapisi.webp";
 const stairs = publicMediaUrl("/assets/metal-stairs.jpg");
 const storage = "/projects/davutoglu/metal-odunluk.webp";
 const workshop = "/projects/davutoglu/atolye-dis-cephe.webp";
+const customFabricationWorkshop =
+  "/services/ozel-metal-imalat/atolye-kaynak-imalat.webp";
 export const images = { gate, stairs, storage, workshop };
 export type FAQ = { question: string; answer: string };
 export type Service = {
@@ -198,7 +200,7 @@ export const services: Service[] = [
     slug: "ozel-metal-imalat",
     title: "Özel İmalat ve Kaynak",
     description: "Fikrinize ve ihtiyacınıza göre şekillenen metal üretimi.",
-    image: workshop,
+    image: customFabricationWorkshop,
     category: "Özel İmalat",
     content:
       "Standart ürünlerin karşılamadığı ihtiyaçlar için özel ölçülü metal ürünler değerlendirilebilir. Bir eskiz, referans görsel veya kullanım senaryosu fikri somutlaştırmaya yardımcı olur. Kaynak ve onarım taleplerinde mevcut malzemenin türü, durumu ve kullanım amacı incelenmelidir.",
